@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using HotelBooking.Infrastructure.Data;
 using HotelBooking.Domain.Entities;
@@ -6,6 +7,7 @@ using HotelBooking.API.DTOs;
 
 namespace HotelBooking.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
@@ -20,6 +22,7 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/users
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<UserDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -102,6 +105,7 @@ public class UsersController : ControllerBase
     }
 
     // POST: api/users
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -180,6 +184,7 @@ public class UsersController : ControllerBase
     }
 
     // PUT: api/users/{id}
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -248,6 +253,7 @@ public class UsersController : ControllerBase
     }
 
     // DELETE: api/users/{id}
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
