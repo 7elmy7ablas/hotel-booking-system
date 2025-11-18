@@ -309,6 +309,248 @@ try
     .Produces(StatusCodes.Status404NotFound)
     .Produces(StatusCodes.Status500InternalServerError);
 
+    // ==================== ROOM CRUD ENDPOINTS ====================
+
+    // POST /api/rooms - Create new room
+    app.MapPost("/api/rooms", async (Room room, ApplicationDbContext context, HttpContext httpContext, ILogger<Program> logger) =>
+    {
+        try
+        {
+            logger.LogInformation("Attempting to create room: {@Room}", new { room.RoomType, room.HotelId, room.PricePerNight });
+
+            // Validate HotelId exists
+            var hotelExists = await context.Hotels.AnyAsync(h => h.Id == room.HotelId && !h.IsDeleted);
+            if (!hotelExists)
+            {
+                logger.LogWarning("Room creation failed: Hotel with ID {HotelId} not found", room.HotelId);
+                return Results.NotFound(new { Message = $"Hotel with ID {room.HotelId} not found" });
+            }
+
+            // Validate PricePerNight > 0
+            if (room.PricePerNight <= 0)
+            {
+                logger.LogWarning("Room creation failed: PricePerNight must be greater than 0");
+                return Results.BadRequest(new { Message = "PricePerNight must be greater than 0" });
+            }
+
+            // Validate Capacity > 0
+            if (room.Capacity <= 0)
+            {
+                logger.LogWarning("Room creation failed: Capacity must be greater than 0");
+                return Results.BadRequest(new { Message = "Capacity must be greater than 0" });
+            }
+
+            // Validate RoomType
+            if (string.IsNullOrWhiteSpace(room.RoomType))
+            {
+                logger.LogWarning("Room creation failed: RoomType is required");
+                return Results.BadRequest(new { Message = "RoomType is required" });
+            }
+
+            // Generate new Guid for Id
+            if (room.Id == Guid.Empty)
+            {
+                room.Id = Guid.NewGuid();
+                logger.LogInformation("Generated new GUID for room: {RoomId}", room.Id);
+            }
+
+            // Set audit fields
+            room.CreatedAt = DateTime.UtcNow;
+            room.UpdatedAt = null;
+            room.IsDeleted = false;
+            room.DeletedAt = null;
+
+            // Add to database
+            context.Rooms.Add(room);
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Room created successfully with ID {RoomId}", room.Id);
+
+            // Return 201 Created with Location header
+            var location = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}/api/rooms/{room.Id}";
+            return Results.Created(location, room);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating room");
+            return Results.Problem("An error occurred while creating the room");
+        }
+    })
+    .WithName("CreateRoom")
+    .Produces<Room>(StatusCodes.Status201Created)
+    .Produces(StatusCodes.Status400BadRequest)
+    .Produces(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status500InternalServerError);
+
+    // GET /api/rooms - Get all rooms
+    app.MapGet("/api/rooms", async (ApplicationDbContext context, ILogger<Program> logger) =>
+    {
+        try
+        {
+            logger.LogInformation("Retrieving all rooms");
+
+            var rooms = await context.Rooms
+                .Where(r => !r.IsDeleted)
+                .Include(r => r.Hotel)
+                .ToListAsync();
+
+            logger.LogInformation("Retrieved {Count} rooms", rooms.Count);
+
+            return Results.Ok(rooms);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving rooms");
+            return Results.Problem("An error occurred while retrieving rooms");
+        }
+    })
+    .WithName("GetAllRooms")
+    .Produces<IEnumerable<Room>>(StatusCodes.Status200OK)
+    .Produces(StatusCodes.Status500InternalServerError);
+
+    // GET /api/rooms/{id} - Get room by ID
+    app.MapGet("/api/rooms/{id:guid}", async (Guid id, ApplicationDbContext context, ILogger<Program> logger) =>
+    {
+        try
+        {
+            logger.LogInformation("Retrieving room with ID {RoomId}", id);
+
+            var room = await context.Rooms
+                .Include(r => r.Hotel)
+                .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
+
+            if (room is null)
+            {
+                logger.LogWarning("Room with ID {RoomId} not found", id);
+                return Results.NotFound(new { Message = $"Room with ID {id} not found" });
+            }
+
+            logger.LogInformation("Room with ID {RoomId} retrieved successfully", id);
+
+            return Results.Ok(room);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving room with ID {RoomId}", id);
+            return Results.Problem("An error occurred while retrieving the room");
+        }
+    })
+    .WithName("GetRoomById")
+    .Produces<Room>(StatusCodes.Status200OK)
+    .Produces(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status500InternalServerError);
+
+    // PUT /api/rooms/{id} - Update room
+    app.MapPut("/api/rooms/{id:guid}", async (Guid id, Room updatedRoom, ApplicationDbContext context, ILogger<Program> logger) =>
+    {
+        try
+        {
+            logger.LogInformation("Attempting to update room with ID {RoomId}", id);
+
+            // Find existing room
+            var existingRoom = await context.Rooms.FindAsync(id);
+
+            if (existingRoom is null || existingRoom.IsDeleted)
+            {
+                logger.LogWarning("Room with ID {RoomId} not found", id);
+                return Results.NotFound(new { Message = $"Room with ID {id} not found" });
+            }
+
+            // Validate HotelId exists if changed
+            if (existingRoom.HotelId != updatedRoom.HotelId)
+            {
+                var hotelExists = await context.Hotels.AnyAsync(h => h.Id == updatedRoom.HotelId && !h.IsDeleted);
+                if (!hotelExists)
+                {
+                    logger.LogWarning("Room update failed: Hotel with ID {HotelId} not found", updatedRoom.HotelId);
+                    return Results.NotFound(new { Message = $"Hotel with ID {updatedRoom.HotelId} not found" });
+                }
+            }
+
+            // Validate PricePerNight > 0
+            if (updatedRoom.PricePerNight <= 0)
+            {
+                logger.LogWarning("Room update failed: PricePerNight must be greater than 0");
+                return Results.BadRequest(new { Message = "PricePerNight must be greater than 0" });
+            }
+
+            // Validate Capacity > 0
+            if (updatedRoom.Capacity <= 0)
+            {
+                logger.LogWarning("Room update failed: Capacity must be greater than 0");
+                return Results.BadRequest(new { Message = "Capacity must be greater than 0" });
+            }
+
+            // Validate RoomType
+            if (string.IsNullOrWhiteSpace(updatedRoom.RoomType))
+            {
+                logger.LogWarning("Room update failed: RoomType is required");
+                return Results.BadRequest(new { Message = "RoomType is required" });
+            }
+
+            // Update properties (except Id and CreatedAt)
+            existingRoom.HotelId = updatedRoom.HotelId;
+            existingRoom.RoomType = updatedRoom.RoomType;
+            existingRoom.PricePerNight = updatedRoom.PricePerNight;
+            existingRoom.Capacity = updatedRoom.Capacity;
+            existingRoom.IsAvailable = updatedRoom.IsAvailable;
+            existingRoom.UpdatedAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Room with ID {RoomId} updated successfully", id);
+
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating room with ID {RoomId}", id);
+            return Results.Problem("An error occurred while updating the room");
+        }
+    })
+    .WithName("UpdateRoom")
+    .Produces(StatusCodes.Status204NoContent)
+    .Produces(StatusCodes.Status400BadRequest)
+    .Produces(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status500InternalServerError);
+
+    // DELETE /api/rooms/{id} - Soft delete room
+    app.MapDelete("/api/rooms/{id:guid}", async (Guid id, ApplicationDbContext context, ILogger<Program> logger) =>
+    {
+        try
+        {
+            logger.LogInformation("Attempting to delete room with ID {RoomId}", id);
+
+            // Find room
+            var room = await context.Rooms.FindAsync(id);
+
+            if (room is null || room.IsDeleted)
+            {
+                logger.LogWarning("Room with ID {RoomId} not found", id);
+                return Results.NotFound(new { Message = $"Room with ID {id} not found" });
+            }
+
+            // Soft delete
+            room.IsDeleted = true;
+            room.DeletedAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Room with ID {RoomId} soft deleted successfully", id);
+
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting room with ID {RoomId}", id);
+            return Results.Problem("An error occurred while deleting the room");
+        }
+    })
+    .WithName("DeleteRoom")
+    .Produces(StatusCodes.Status204NoContent)
+    .Produces(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status500InternalServerError);
+
     Log.Information("Hotel Booking API started successfully");
     app.Run();
 }
