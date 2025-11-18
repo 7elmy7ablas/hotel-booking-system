@@ -41,6 +41,9 @@ export class SearchComponent implements OnInit {
   isLoading = false;
   hasSearched = false;
   minDate = new Date();
+  
+  // Default hotel image for fallback
+  defaultHotelImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=250&fit=crop&q=80';
 
   constructor(
     private fb: FormBuilder,
@@ -130,5 +133,13 @@ export class SearchComponent implements OnInit {
     }
 
     return stars;
+  }
+
+  /**
+   * Handle image load error by setting default placeholder
+   */
+  onImageError(event: any): void {
+    console.warn('Hotel image failed to load, using default placeholder');
+    event.target.src = this.defaultHotelImage;
   }
 }

@@ -1,11 +1,12 @@
 export interface User {
-  id: number;
+  id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   phoneNumber?: string;
   role: string;
   createdAt?: Date;
+  updatedAt?: Date;
+  isDeleted?: boolean;
 }
 
 export interface LoginRequest {
@@ -16,12 +17,12 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   phoneNumber?: string;
 }
 
 export interface AuthResponse {
   token: string;
   user: User;
+  expiresAt: string;
 }

@@ -93,7 +93,7 @@ export class CreateComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.isAuthenticated = this.authService.isAuthenticated();
+    this.isAuthenticated = this.authService.isAuthenticated;
 
     // Get query params
     this.route.queryParams.subscribe(params => {

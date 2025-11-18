@@ -7,7 +7,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../../services/auth.service';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -29,7 +28,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   userName = '';
   userEmail = '';
   isMobileMenuOpen = false;
-  private authSubscription?: Subscription;
 
   constructor(
     private authService: AuthService,
@@ -39,25 +37,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Check initial authentication state
     this.updateAuthState();
-
-    // Subscribe to auth state changes
-    this.authSubscription = this.authService.currentUser$.subscribe(user => {
+    
+    // Note: Using polling instead of observable since we're using signals now
+    // In a production app, you might want to use effect() or computed() from Angular signals
+    setInterval(() => {
       this.updateAuthState();
-    });
+    }, 1000);
   }
 
   ngOnDestroy(): void {
-    if (this.authSubscription) {
-      this.authSubscription.unsubscribe();
-    }
+    // Cleanup if needed
   }
 
   updateAuthState(): void {
-    this.isAuthenticated = this.authService.isAuthenticated();
+    this.isAuthenticated = this.authService.isAuthenticated;
     const user = this.authService.getCurrentUser();
     
     if (user) {
-      this.userName = `${user.firstName} ${user.lastName}`;
+      this.userName = user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim();
       this.userEmail = user.email;
     } else {
       this.userName = '';

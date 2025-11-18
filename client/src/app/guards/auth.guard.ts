@@ -39,7 +39,7 @@ export const authGuard: CanActivateFn = (
 
   try {
     // Check if user is authenticated
-    const isAuthenticated = authService.isAuthenticated();
+    const isAuthenticated = authService.isAuthenticated;
     
     if (isAuthenticated) {
       // User is authenticated, allow access

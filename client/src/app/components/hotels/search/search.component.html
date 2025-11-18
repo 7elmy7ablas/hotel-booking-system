@@ -88,8 +88,10 @@
       (click)="viewHotelDetails(hotel.id)">
       <div class="hotel-image">
         <img 
-          [src]="hotel.imageUrl || 'https://via.placeholder.com/400x250?text=Hotel+Image'" 
-          [alt]="hotel.name">
+          [src]="hotel.imageUrl || defaultHotelImage" 
+          [alt]="hotel.name"
+          (error)="onImageError($event)"
+          loading="lazy">
         <div class="rating-badge">
           <mat-icon>star</mat-icon>
           <span>{{ hotel.rating }}</span>

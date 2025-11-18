@@ -63,8 +63,7 @@ export class ProfileComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {
     this.profileForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      fullName: ['', Validators.required],
       email: [{ value: '', disabled: true }],
       phoneNumber: ['']
     });
@@ -87,8 +86,7 @@ export class ProfileComponent implements OnInit {
     if (currentUser) {
       this.user = currentUser;
       this.profileForm.patchValue({
-        firstName: currentUser.firstName,
-        lastName: currentUser.lastName,
+        fullName: currentUser.fullName,
         email: currentUser.email,
         phoneNumber: currentUser.phoneNumber || ''
       });
@@ -98,8 +96,7 @@ export class ProfileComponent implements OnInit {
         next: (user) => {
           this.user = user;
           this.profileForm.patchValue({
-            firstName: user.firstName,
-            lastName: user.lastName,
+            fullName: user.fullName,
             email: user.email,
             phoneNumber: user.phoneNumber || ''
           });
@@ -139,8 +136,7 @@ export class ProfileComponent implements OnInit {
     if (this.profileForm.valid) {
       this.isUpdatingProfile = true;
       const profileData = {
-        firstName: this.profileForm.value.firstName,
-        lastName: this.profileForm.value.lastName,
+        fullName: this.profileForm.value.fullName,
         phoneNumber: this.profileForm.value.phoneNumber
       };
 

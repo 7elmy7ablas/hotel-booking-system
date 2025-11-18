@@ -28,7 +28,11 @@
       <mat-tab-group>
         <mat-tab *ngFor="let image of hotelImages; let i = index" [label]="'Image ' + (i + 1)">
           <div class="image-container">
-            <img [src]="image" [alt]="hotel.name + ' - Image ' + (i + 1)">
+            <img 
+              [src]="image || defaultHotelImage" 
+              [alt]="hotel.name + ' - Image ' + (i + 1)"
+              (error)="onImageError($event)"
+              loading="lazy">
           </div>
         </mat-tab>
       </mat-tab-group>

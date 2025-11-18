@@ -35,7 +35,7 @@ export const guestGuard: CanActivateFn = (
 
   try {
     // Check if user is authenticated
-    const isAuthenticated = authService.isAuthenticated();
+    const isAuthenticated = authService.isAuthenticated;
     
     if (!isAuthenticated) {
       // User is not authenticated, allow access to guest pages

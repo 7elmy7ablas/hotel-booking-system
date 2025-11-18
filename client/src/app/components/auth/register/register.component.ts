@@ -40,8 +40,7 @@ export class RegisterComponent {
     private router: Router
   ) {
     this.registerForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      fullName: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       phoneNumber: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(6)]],
@@ -61,8 +60,7 @@ export class RegisterComponent {
       this.errorMessage = '';
 
       const userData = {
-        firstName: this.registerForm.value.firstName,
-        lastName: this.registerForm.value.lastName,
+        fullName: this.registerForm.value.fullName,
         email: this.registerForm.value.email,
         phoneNumber: this.registerForm.value.phoneNumber,
         password: this.registerForm.value.password
@@ -84,18 +82,10 @@ export class RegisterComponent {
     }
   }
 
-  getFirstNameErrorMessage(): string {
-    const control = this.registerForm.get('firstName');
+  getFullNameErrorMessage(): string {
+    const control = this.registerForm.get('fullName');
     if (control?.hasError('required')) {
-      return 'First name is required';
-    }
-    return '';
-  }
-
-  getLastNameErrorMessage(): string {
-    const control = this.registerForm.get('lastName');
-    if (control?.hasError('required')) {
-      return 'Last name is required';
+      return 'Full name is required';
     }
     return '';
   }

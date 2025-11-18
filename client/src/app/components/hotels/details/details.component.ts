@@ -56,6 +56,9 @@ export class DetailsComponent implements OnInit {
   minDate = new Date();
 
   hotelImages: string[] = [];
+  
+  // Default hotel image for fallback
+  defaultHotelImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=500&fit=crop&q=80';
 
   amenityIcons: { [key: string]: string } = {
     'WiFi': 'wifi',
@@ -165,11 +168,20 @@ export class DetailsComponent implements OnInit {
     const images = [];
     if (hotel.imageUrl) {
       images.push(hotel.imageUrl);
+    } else {
+      // Use default image if no imageUrl provided
+      images.push(this.defaultHotelImage);
     }
-    // Generate placeholder images
-    for (let i = 0; i < 4; i++) {
-      images.push(`https://via.placeholder.com/800x500?text=${hotel.name}+Image+${i + 1}`);
-    }
+    
+    // Add a few more placeholder images for the gallery
+    const placeholderImages = [
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=500&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=500&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&h=500&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800&h=500&fit=crop&q=80'
+    ];
+    
+    images.push(...placeholderImages);
     return images;
   }
 
@@ -249,5 +261,13 @@ export class DetailsComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/hotels']);
+  }
+
+  /**
+   * Handle image load error by setting default placeholder
+   */
+  onImageError(event: any): void {
+    console.warn('Hotel image failed to load, using default placeholder');
+    event.target.src = this.defaultHotelImage;
   }
 }
