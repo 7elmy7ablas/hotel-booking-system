@@ -1,3 +1,22 @@
-<app-header></app-header>
-<router-outlet />
-<app-footer></app-footer>
+<!-- 
+  Root Application Layout
+  
+  Structure:
+  1. app-container: Main flex container for sticky footer
+  2. app-header: Navigation and user menu (sticky)
+  3. main-content: Router outlet for page content (flex-grow)
+  4. app-footer: Footer with links and copyright
+-->
+
+<div class="app-container">
+  <!-- Header: Navigation and user menu -->
+  <app-header></app-header>
+
+  <!-- Main Content: Router outlet for all pages -->
+  <main class="main-content" role="main">
+    <router-outlet />
+  </main>
+
+  <!-- Footer: Links and copyright -->
+  <app-footer></app-footer>
+</div>

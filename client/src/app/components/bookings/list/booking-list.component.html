@@ -1,0 +1,285 @@
+<div class="booking-list-container">
+  <div class="page-header">
+    <h1>My Bookings</h1>
+    <p>View and manage your hotel reservations</p>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner diameter="60"></mat-spinner>
+    <p>Loading your bookings...</p>
+  </div>
+
+  <!-- Bookings Content -->
+  <div class="bookings-content" *ngIf="!isLoading">
+    <mat-tab-group [(selectedIndex)]="selectedTab">
+      <!-- All Bookings Tab -->
+      <mat-tab label="All ({{ allBookings.length }})">
+        <div class="tab-content">
+          <div class="bookings-grid" *ngIf="allBookings.length > 0">
+            <mat-card class="booking-card" *ngFor="let booking of allBookings">
+              <mat-card-header>
+                <div class="booking-header">
+                  <div class="booking-id">
+                    <mat-icon>confirmation_number</mat-icon>
+                    <span>Booking #{{ booking.id }}</span>
+                  </div>
+                  <mat-chip [color]="getStatusColor(booking.status)">
+                    <mat-icon>{{ getStatusIcon(booking.status) }}</mat-icon>
+                    {{ booking.status }}
+                  </mat-chip>
+                </div>
+              </mat-card-header>
+
+              <mat-card-content>
+                <div class="booking-info">
+                  <div class="info-row">
+                    <mat-icon>hotel</mat-icon>
+                    <span class="label">Hotel ID:</span>
+                    <span class="value">{{ booking.hotelId }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>meeting_room</mat-icon>
+                    <span class="label">Room ID:</span>
+                    <span class="value">{{ booking.roomId }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>person</mat-icon>
+                    <span class="label">Guest:</span>
+                    <span class="value">{{ booking.guestName }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>event</mat-icon>
+                    <span class="label">Check-in:</span>
+                    <span class="value">{{ booking.checkInDate | date }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>event</mat-icon>
+                    <span class="label">Check-out:</span>
+                    <span class="value">{{ booking.checkOutDate | date }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>nights_stay</mat-icon>
+                    <span class="label">Nights:</span>
+                    <span class="value">{{ calculateNights(booking.checkInDate, booking.checkOutDate) }}</span>
+                  </div>
+
+                  <div class="info-row price">
+                    <mat-icon>attach_money</mat-icon>
+                    <span class="label">Total:</span>
+                    <span class="value">${{ booking.totalPrice }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+
+              <mat-card-actions>
+                <button mat-button color="primary" (click)="viewBookingDetails(booking.id)">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+                <button 
+                  mat-button 
+                  color="warn" 
+                  *ngIf="canCancelBooking(booking)"
+                  (click)="cancelBooking(booking)">
+                  <mat-icon>cancel</mat-icon>
+                  Cancel
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          </div>
+
+          <div class="empty-state" *ngIf="allBookings.length === 0">
+            <mat-icon>event_busy</mat-icon>
+            <h3>No Bookings Found</h3>
+            <p>You haven't made any bookings yet</p>
+            <button mat-raised-button color="primary" routerLink="/hotels">
+              Browse Hotels
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Pending Tab -->
+      <mat-tab label="Pending ({{ pendingBookings.length }})">
+        <div class="tab-content">
+          <div class="bookings-grid" *ngIf="pendingBookings.length > 0">
+            <mat-card class="booking-card" *ngFor="let booking of pendingBookings">
+              <mat-card-header>
+                <div class="booking-header">
+                  <div class="booking-id">
+                    <mat-icon>confirmation_number</mat-icon>
+                    <span>Booking #{{ booking.id }}</span>
+                  </div>
+                  <mat-chip color="warn">
+                    <mat-icon>schedule</mat-icon>
+                    {{ booking.status }}
+                  </mat-chip>
+                </div>
+              </mat-card-header>
+
+              <mat-card-content>
+                <div class="booking-info">
+                  <div class="info-row">
+                    <mat-icon>person</mat-icon>
+                    <span class="label">Guest:</span>
+                    <span class="value">{{ booking.guestName }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>event</mat-icon>
+                    <span class="label">Check-in:</span>
+                    <span class="value">{{ booking.checkInDate | date }}</span>
+                  </div>
+
+                  <div class="info-row price">
+                    <mat-icon>attach_money</mat-icon>
+                    <span class="label">Total:</span>
+                    <span class="value">${{ booking.totalPrice }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+
+              <mat-card-actions>
+                <button mat-button color="primary" (click)="viewBookingDetails(booking.id)">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+                <button mat-button color="warn" (click)="cancelBooking(booking)">
+                  <mat-icon>cancel</mat-icon>
+                  Cancel
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          </div>
+
+          <div class="empty-state" *ngIf="pendingBookings.length === 0">
+            <mat-icon>event_busy</mat-icon>
+            <h3>No Pending Bookings</h3>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Confirmed Tab -->
+      <mat-tab label="Confirmed ({{ confirmedBookings.length }})">
+        <div class="tab-content">
+          <div class="bookings-grid" *ngIf="confirmedBookings.length > 0">
+            <mat-card class="booking-card" *ngFor="let booking of confirmedBookings">
+              <mat-card-header>
+                <div class="booking-header">
+                  <div class="booking-id">
+                    <mat-icon>confirmation_number</mat-icon>
+                    <span>Booking #{{ booking.id }}</span>
+                  </div>
+                  <mat-chip color="primary">
+                    <mat-icon>check_circle</mat-icon>
+                    {{ booking.status }}
+                  </mat-chip>
+                </div>
+              </mat-card-header>
+
+              <mat-card-content>
+                <div class="booking-info">
+                  <div class="info-row">
+                    <mat-icon>person</mat-icon>
+                    <span class="label">Guest:</span>
+                    <span class="value">{{ booking.guestName }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>event</mat-icon>
+                    <span class="label">Check-in:</span>
+                    <span class="value">{{ booking.checkInDate | date }}</span>
+                  </div>
+
+                  <div class="info-row price">
+                    <mat-icon>attach_money</mat-icon>
+                    <span class="label">Total:</span>
+                    <span class="value">${{ booking.totalPrice }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+
+              <mat-card-actions>
+                <button mat-button color="primary" (click)="viewBookingDetails(booking.id)">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+                <button mat-button color="warn" (click)="cancelBooking(booking)">
+                  <mat-icon>cancel</mat-icon>
+                  Cancel
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          </div>
+
+          <div class="empty-state" *ngIf="confirmedBookings.length === 0">
+            <mat-icon>event_busy</mat-icon>
+            <h3>No Confirmed Bookings</h3>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Cancelled Tab -->
+      <mat-tab label="Cancelled ({{ cancelledBookings.length }})">
+        <div class="tab-content">
+          <div class="bookings-grid" *ngIf="cancelledBookings.length > 0">
+            <mat-card class="booking-card cancelled" *ngFor="let booking of cancelledBookings">
+              <mat-card-header>
+                <div class="booking-header">
+                  <div class="booking-id">
+                    <mat-icon>confirmation_number</mat-icon>
+                    <span>Booking #{{ booking.id }}</span>
+                  </div>
+                  <mat-chip color="accent">
+                    <mat-icon>cancel</mat-icon>
+                    {{ booking.status }}
+                  </mat-chip>
+                </div>
+              </mat-card-header>
+
+              <mat-card-content>
+                <div class="booking-info">
+                  <div class="info-row">
+                    <mat-icon>person</mat-icon>
+                    <span class="label">Guest:</span>
+                    <span class="value">{{ booking.guestName }}</span>
+                  </div>
+
+                  <div class="info-row">
+                    <mat-icon>event</mat-icon>
+                    <span class="label">Check-in:</span>
+                    <span class="value">{{ booking.checkInDate | date }}</span>
+                  </div>
+
+                  <div class="info-row price">
+                    <mat-icon>attach_money</mat-icon>
+                    <span class="label">Total:</span>
+                    <span class="value">${{ booking.totalPrice }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+
+              <mat-card-actions>
+                <button mat-button color="primary" (click)="viewBookingDetails(booking.id)">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          </div>
+
+          <div class="empty-state" *ngIf="cancelledBookings.length === 0">
+            <mat-icon>event_busy</mat-icon>
+            <h3>No Cancelled Bookings</h3>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

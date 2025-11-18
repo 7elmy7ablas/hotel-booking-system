@@ -1,0 +1,319 @@
+<div class="create-container">
+  <div class="page-header">
+    <h1>Complete Your Booking</h1>
+    <p>Just a few steps to confirm your reservation</p>
+  </div>
+
+  <!-- Login Prompt -->
+  <mat-card class="stepper-card" *ngIf="!isAuthenticated">
+    <div class="login-prompt">
+      <mat-icon>lock</mat-icon>
+      <h3>Login Required</h3>
+      <p>Please login or register to continue with your booking</p>
+      <div class="button-group">
+        <button mat-raised-button color="primary" (click)="navigateToLogin()">
+          Login
+        </button>
+        <button mat-stroked-button (click)="navigateToRegister()">
+          Register
+        </button>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Booking Stepper -->
+  <mat-card class="stepper-card" *ngIf="isAuthenticated">
+    <mat-stepper [linear]="true" #stepper>
+      <!-- Step 1: Review Details -->
+      <mat-step [stepControl]="bookingDetailsForm">
+        <ng-template matStepLabel>Review Details</ng-template>
+        <div class="step-content">
+          <div class="hotel-summary">
+            <div class="hotel-image">
+              <img [src]="hotelImageUrl" [alt]="hotelName">
+            </div>
+            <div class="hotel-info">
+              <h3>{{ hotelName }}</h3>
+              <div class="info-row">
+                <mat-icon>meeting_room</mat-icon>
+                <span>{{ roomType }}</span>
+              </div>
+              <div class="info-row">
+                <mat-icon>event</mat-icon>
+                <span>{{ checkInDate | date }} - {{ checkOutDate | date }}</span>
+              </div>
+              <div class="info-row">
+                <mat-icon>people</mat-icon>
+                <span>{{ numberOfGuests }} Guest(s)</span>
+              </div>
+              <div class="info-row">
+                <mat-icon>nights_stay</mat-icon>
+                <span>{{ numberOfNights }} Night(s)</span>
+              </div>
+              <div class="price-info">
+                Total: ${{ totalPrice }}
+              </div>
+            </div>
+          </div>
+
+          <form [formGroup]="bookingDetailsForm">
+            <div class="form-section">
+              <h3>Booking Dates</h3>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Check-in Date</mat-label>
+                  <input 
+                    matInput 
+                    [matDatepicker]="checkInPicker" 
+                    formControlName="checkInDate"
+                    [min]="minDate">
+                  <mat-icon matPrefix>event</mat-icon>
+                  <mat-datepicker-toggle matSuffix [for]="checkInPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #checkInPicker></mat-datepicker>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Check-out Date</mat-label>
+                  <input 
+                    matInput 
+                    [matDatepicker]="checkOutPicker" 
+                    formControlName="checkOutDate"
+                    [min]="bookingDetailsForm.value.checkInDate || minDate">
+                  <mat-icon matPrefix>event</mat-icon>
+                  <mat-datepicker-toggle matSuffix [for]="checkOutPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #checkOutPicker></mat-datepicker>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Number of Guests</mat-label>
+                <input 
+                  matInput 
+                  type="number" 
+                  formControlName="guests" 
+                  min="1" 
+                  max="10">
+                <mat-icon matPrefix>people</mat-icon>
+              </mat-form-field>
+            </div>
+          </form>
+
+          <div class="stepper-buttons">
+            <button mat-button disabled>Back</button>
+            <button mat-raised-button color="primary" matStepperNext>
+              Next
+            </button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Step 2: Guest Information -->
+      <mat-step [stepControl]="guestInfoForm">
+        <ng-template matStepLabel>Guest Information</ng-template>
+        <div class="step-content">
+          <form [formGroup]="guestInfoForm">
+            <div class="form-section">
+              <h3>Contact Details</h3>
+              <mat-form-field appearance="outline" class="form-field full-width">
+                <mat-label>Full Name</mat-label>
+                <input matInput formControlName="guestName" placeholder="Enter your full name">
+                <mat-icon matPrefix>person</mat-icon>
+                <mat-error *ngIf="guestInfoForm.get('guestName')?.invalid">
+                  Name is required
+                </mat-error>
+              </mat-form-field>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Email</mat-label>
+                  <input matInput type="email" formControlName="guestEmail" placeholder="your@email.com">
+                  <mat-icon matPrefix>email</mat-icon>
+                  <mat-error *ngIf="guestInfoForm.get('guestEmail')?.invalid">
+                    Valid email is required
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Phone Number</mat-label>
+                  <input matInput formControlName="guestPhone" placeholder="+1 234 567 8900">
+                  <mat-icon matPrefix>phone</mat-icon>
+                  <mat-error *ngIf="guestInfoForm.get('guestPhone')?.invalid">
+                    Phone number is required
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="form-field full-width">
+                <mat-label>Special Requests (Optional)</mat-label>
+                <textarea 
+                  matInput 
+                  formControlName="specialRequests" 
+                  rows="4"
+                  placeholder="Any special requests or requirements?"></textarea>
+                <mat-icon matPrefix>note</mat-icon>
+              </mat-form-field>
+            </div>
+          </form>
+
+          <div class="stepper-buttons">
+            <button mat-button matStepperPrevious>Back</button>
+            <button mat-raised-button color="primary" matStepperNext>
+              Next
+            </button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Step 3: Payment -->
+      <mat-step [stepControl]="paymentForm">
+        <ng-template matStepLabel>Payment</ng-template>
+        <div class="step-content">
+          <form [formGroup]="paymentForm">
+            <div class="form-section">
+              <h3>Select Payment Method</h3>
+              <div class="payment-methods">
+                <div 
+                  class="payment-option"
+                  [class.selected]="paymentForm.value.paymentMethod === 'credit_card'"
+                  (click)="selectPaymentMethod('credit_card')">
+                  <mat-icon>credit_card</mat-icon>
+                  <span>Credit Card</span>
+                </div>
+                <div 
+                  class="payment-option"
+                  [class.selected]="paymentForm.value.paymentMethod === 'debit_card'"
+                  (click)="selectPaymentMethod('debit_card')">
+                  <mat-icon>payment</mat-icon>
+                  <span>Debit Card</span>
+                </div>
+                <div 
+                  class="payment-option"
+                  [class.selected]="paymentForm.value.paymentMethod === 'paypal'"
+                  (click)="selectPaymentMethod('paypal')">
+                  <mat-icon>account_balance_wallet</mat-icon>
+                  <span>PayPal</span>
+                </div>
+                <div 
+                  class="payment-option"
+                  [class.selected]="paymentForm.value.paymentMethod === 'pay_at_hotel'"
+                  (click)="selectPaymentMethod('pay_at_hotel')">
+                  <mat-icon>hotel</mat-icon>
+                  <span>Pay at Hotel</span>
+                </div>
+              </div>
+
+              <mat-checkbox formControlName="acceptTerms" class="terms-checkbox">
+                I accept the <a href="#" target="_blank">terms and conditions</a>
+              </mat-checkbox>
+            </div>
+
+            <div class="booking-summary">
+              <h3>Booking Summary</h3>
+              <div class="summary-row">
+                <span class="label">Hotel:</span>
+                <span class="value">{{ hotelName }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Room:</span>
+                <span class="value">{{ roomType }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Check-in:</span>
+                <span class="value">{{ checkInDate | date }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Check-out:</span>
+                <span class="value">{{ checkOutDate | date }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Guests:</span>
+                <span class="value">{{ numberOfGuests }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Nights:</span>
+                <span class="value">{{ numberOfNights }}</span>
+              </div>
+              <div class="summary-row total">
+                <span class="label">Total Amount:</span>
+                <span class="value">${{ totalPrice }}</span>
+              </div>
+            </div>
+          </form>
+
+          <div class="stepper-buttons">
+            <button mat-button matStepperPrevious>Back</button>
+            <button 
+              mat-raised-button 
+              color="primary" 
+              (click)="confirmBooking()"
+              [disabled]="!paymentForm.valid || isBooking">
+              <mat-spinner *ngIf="isBooking" diameter="20"></mat-spinner>
+              <span *ngIf="!isBooking">Confirm Booking</span>
+            </button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Step 4: Confirmation -->
+      <mat-step>
+        <ng-template matStepLabel>Confirmation</ng-template>
+        <div class="step-content">
+          <div class="confirmation-content">
+            <mat-icon class="success-icon">check_circle</mat-icon>
+            <h2>Booking Confirmed!</h2>
+            <p>Your reservation has been successfully confirmed</p>
+            
+            <div class="booking-id">
+              Booking ID: #{{ bookingId }}
+            </div>
+
+            <div class="confirmation-details">
+              <div class="booking-summary">
+                <h3>Booking Details</h3>
+                <div class="summary-row">
+                  <span class="label">Hotel:</span>
+                  <span class="value">{{ hotelName }}</span>
+                </div>
+                <div class="summary-row">
+                  <span class="label">Room:</span>
+                  <span class="value">{{ roomType }}</span>
+                </div>
+                <div class="summary-row">
+                  <span class="label">Check-in:</span>
+                  <span class="value">{{ checkInDate | date }}</span>
+                </div>
+                <div class="summary-row">
+                  <span class="label">Check-out:</span>
+                  <span class="value">{{ checkOutDate | date }}</span>
+                </div>
+                <div class="summary-row">
+                  <span class="label">Guest:</span>
+                  <span class="value">{{ guestInfoForm.value.guestName }}</span>
+                </div>
+                <div class="summary-row total">
+                  <span class="label">Total Paid:</span>
+                  <span class="value">${{ totalPrice }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <button mat-raised-button color="primary" (click)="viewBookingDetails()">
+                <mat-icon>visibility</mat-icon>
+                View Details
+              </button>
+              <button mat-stroked-button (click)="downloadConfirmation()">
+                <mat-icon>download</mat-icon>
+                Download
+              </button>
+              <button mat-stroked-button (click)="printConfirmation()">
+                <mat-icon>print</mat-icon>
+                Print
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  </mat-card>
+</div>

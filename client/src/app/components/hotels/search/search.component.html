@@ -1,0 +1,142 @@
+<div class="search-container">
+  <!-- Search Header -->
+  <div class="search-header">
+    <h1>Find Your Perfect Stay</h1>
+    <p>Search from thousands of hotels worldwide</p>
+  </div>
+
+  <!-- Search Form -->
+  <mat-card class="search-form-card">
+    <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Location</mat-label>
+          <input 
+            matInput 
+            formControlName="city" 
+            placeholder="Enter city or destination">
+          <mat-icon matPrefix>location_on</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Check-in Date</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="checkInPicker" 
+            formControlName="checkInDate"
+            [min]="minDate">
+          <mat-icon matPrefix>event</mat-icon>
+          <mat-datepicker-toggle matSuffix [for]="checkInPicker"></mat-datepicker-toggle>
+          <mat-datepicker #checkInPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Check-out Date</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="checkOutPicker" 
+            formControlName="checkOutDate"
+            [min]="searchForm.value.checkInDate || minDate">
+          <mat-icon matPrefix>event</mat-icon>
+          <mat-datepicker-toggle matSuffix [for]="checkOutPicker"></mat-datepicker-toggle>
+          <mat-datepicker #checkOutPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field guests-field">
+          <mat-label>Guests</mat-label>
+          <input 
+            matInput 
+            type="number" 
+            formControlName="guests" 
+            min="1" 
+            max="10">
+          <mat-icon matPrefix>person</mat-icon>
+        </mat-form-field>
+
+        <button 
+          mat-raised-button 
+          color="primary" 
+          type="submit" 
+          class="search-button">
+          <mat-icon>search</mat-icon>
+          Search
+        </button>
+
+        <button 
+          mat-stroked-button 
+          type="button" 
+          class="clear-button"
+          (click)="onClearSearch()">
+          <mat-icon>clear</mat-icon>
+          Clear
+        </button>
+      </div>
+    </form>
+  </mat-card>
+
+  <!-- Loading Spinner -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner diameter="60"></mat-spinner>
+    <p>Searching for hotels...</p>
+  </div>
+
+  <!-- Hotels Grid -->
+  <div class="hotels-grid" *ngIf="!isLoading && hotels.length > 0">
+    <mat-card 
+      class="hotel-card" 
+      *ngFor="let hotel of hotels"
+      (click)="viewHotelDetails(hotel.id)">
+      <div class="hotel-image">
+        <img 
+          [src]="hotel.imageUrl || 'https://via.placeholder.com/400x250?text=Hotel+Image'" 
+          [alt]="hotel.name">
+        <div class="rating-badge">
+          <mat-icon>star</mat-icon>
+          <span>{{ hotel.rating }}</span>
+        </div>
+      </div>
+
+      <mat-card-content>
+        <h3 class="hotel-name">{{ hotel.name }}</h3>
+        
+        <div class="hotel-location">
+          <mat-icon>location_on</mat-icon>
+          <span>{{ hotel.city }}, {{ hotel.country }}</span>
+        </div>
+
+        <p class="hotel-description">{{ hotel.description }}</p>
+
+        <div class="hotel-rating">
+          <mat-icon *ngFor="let star of getRatingStars(hotel.rating)">
+            {{ star }}
+          </mat-icon>
+        </div>
+
+        <div class="hotel-amenities" *ngIf="hotel.amenities && hotel.amenities.length > 0">
+          <mat-chip-set>
+            <mat-chip *ngFor="let amenity of hotel.amenities.slice(0, 3)">
+              {{ amenity }}
+            </mat-chip>
+          </mat-chip-set>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button mat-button color="primary">
+          View Details
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && hasSearched && hotels.length === 0">
+    <mat-icon>hotel</mat-icon>
+    <h2>No Hotels Found</h2>
+    <p>We couldn't find any hotels matching your search criteria.</p>
+    <button mat-raised-button color="primary" (click)="onClearSearch()">
+      Clear Search
+    </button>
+  </div>
+</div>

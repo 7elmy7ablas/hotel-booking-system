@@ -1,0 +1,302 @@
+<div class="profile-container">
+  <div class="page-header">
+    <h1>My Profile</h1>
+    <p>Manage your account and view your bookings</p>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner diameter="60"></mat-spinner>
+    <p>Loading profile...</p>
+  </div>
+
+  <!-- Profile Content -->
+  <div class="profile-content" *ngIf="!isLoading && user">
+    <mat-tab-group (selectedIndexChange)="onTabChange($event)">
+      <!-- Profile Tab -->
+      <mat-tab label="Profile">
+        <div class="tab-content">
+          <div class="profile-layout">
+            <!-- User Info Card -->
+            <mat-card class="user-info-card">
+              <div class="user-avatar">
+                <mat-icon>account_circle</mat-icon>
+              </div>
+              <div class="user-details">
+                <h2>{{ user.firstName }} {{ user.lastName }}</h2>
+                <p class="user-email">{{ user.email }}</p>
+                <div class="user-meta">
+                  <div class="meta-item">
+                    <mat-icon>badge</mat-icon>
+                    <span>{{ user.role }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <mat-icon>event</mat-icon>
+                    <span>Member since {{ getMemberSince() }}</span>
+                  </div>
+                </div>
+              </div>
+            </mat-card>
+
+            <!-- Edit Profile Card -->
+            <mat-card class="edit-profile-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <h3>Edit Profile</h3>
+                </mat-card-title>
+              </mat-card-header>
+
+              <mat-card-content>
+                <form [formGroup]="profileForm" (ngSubmit)="updateProfile()">
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>First Name</mat-label>
+                      <input matInput formControlName="firstName">
+                      <mat-icon matPrefix>person</mat-icon>
+                      <mat-error *ngIf="profileForm.get('firstName')?.invalid">
+                        First name is required
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Last Name</mat-label>
+                      <input matInput formControlName="lastName">
+                      <mat-icon matPrefix>person</mat-icon>
+                      <mat-error *ngIf="profileForm.get('lastName')?.invalid">
+                        Last name is required
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="form-field full-width">
+                    <mat-label>Email</mat-label>
+                    <input matInput formControlName="email">
+                    <mat-icon matPrefix>email</mat-icon>
+                    <mat-hint>Email cannot be changed</mat-hint>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="form-field full-width">
+                    <mat-label>Phone Number</mat-label>
+                    <input matInput formControlName="phoneNumber" placeholder="+1 234 567 8900">
+                    <mat-icon matPrefix>phone</mat-icon>
+                  </mat-form-field>
+
+                  <button 
+                    mat-raised-button 
+                    color="primary" 
+                    type="submit"
+                    [disabled]="profileForm.invalid || isUpdatingProfile"
+                    class="save-button">
+                    <mat-spinner *ngIf="isUpdatingProfile" diameter="20"></mat-spinner>
+                    <span *ngIf="!isUpdatingProfile">Save Changes</span>
+                  </button>
+                </form>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Bookings Tab -->
+      <mat-tab label="My Bookings">
+        <div class="tab-content">
+          <!-- Loading Bookings -->
+          <div class="loading-container" *ngIf="isLoadingBookings">
+            <mat-spinner diameter="60"></mat-spinner>
+            <p>Loading bookings...</p>
+          </div>
+
+          <!-- Bookings List -->
+          <div class="bookings-section" *ngIf="!isLoadingBookings">
+            <div class="section-header">
+              <h3>Booking History</h3>
+              <button mat-stroked-button routerLink="/bookings">
+                View All
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+
+            <div class="bookings-grid" *ngIf="bookings.length > 0">
+              <mat-card class="booking-card" *ngFor="let booking of bookings">
+                <mat-card-header>
+                  <div class="booking-header">
+                    <div class="booking-id">
+                      <mat-icon>confirmation_number</mat-icon>
+                      <span>Booking #{{ booking.id }}</span>
+                    </div>
+                    <mat-chip [color]="getStatusColor(booking.status)">
+                      <mat-icon>{{ getStatusIcon(booking.status) }}</mat-icon>
+                      {{ booking.status }}
+                    </mat-chip>
+                  </div>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <div class="booking-info">
+                    <div class="info-row">
+                      <mat-icon>hotel</mat-icon>
+                      <span class="label">Hotel ID:</span>
+                      <span class="value">{{ booking.hotelId }}</span>
+                    </div>
+
+                    <div class="info-row">
+                      <mat-icon>meeting_room</mat-icon>
+                      <span class="label">Room ID:</span>
+                      <span class="value">{{ booking.roomId }}</span>
+                    </div>
+
+                    <div class="info-row">
+                      <mat-icon>event</mat-icon>
+                      <span class="label">Check-in:</span>
+                      <span class="value">{{ booking.checkInDate | date }}</span>
+                    </div>
+
+                    <div class="info-row">
+                      <mat-icon>event</mat-icon>
+                      <span class="label">Check-out:</span>
+                      <span class="value">{{ booking.checkOutDate | date }}</span>
+                    </div>
+
+                    <div class="info-row price">
+                      <mat-icon>attach_money</mat-icon>
+                      <span class="label">Total:</span>
+                      <span class="value">${{ booking.totalPrice }}</span>
+                    </div>
+                  </div>
+                </mat-card-content>
+
+                <mat-card-actions>
+                  <button mat-button color="primary" (click)="viewBookingDetails(booking.id)">
+                    <mat-icon>visibility</mat-icon>
+                    View Details
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            </div>
+
+            <div class="empty-state" *ngIf="bookings.length === 0">
+              <mat-icon>event_busy</mat-icon>
+              <h3>No Bookings Yet</h3>
+              <p>Start exploring hotels and make your first booking</p>
+              <button mat-raised-button color="primary" routerLink="/hotels">
+                Browse Hotels
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Settings Tab -->
+      <mat-tab label="Settings">
+        <div class="tab-content">
+          <mat-card class="settings-card">
+            <mat-card-header>
+              <mat-card-title>
+                <h3>Change Password</h3>
+              </mat-card-title>
+            </mat-card-header>
+
+            <mat-card-content>
+              <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+                <mat-form-field appearance="outline" class="form-field full-width">
+                  <mat-label>Current Password</mat-label>
+                  <input 
+                    matInput 
+                    [type]="hideCurrentPassword ? 'password' : 'text'" 
+                    formControlName="currentPassword">
+                  <mat-icon matPrefix>lock</mat-icon>
+                  <button 
+                    mat-icon-button 
+                    matSuffix 
+                    type="button"
+                    (click)="hideCurrentPassword = !hideCurrentPassword">
+                    <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('currentPassword')?.invalid">
+                    Current password is required
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field full-width">
+                  <mat-label>New Password</mat-label>
+                  <input 
+                    matInput 
+                    [type]="hideNewPassword ? 'password' : 'text'" 
+                    formControlName="newPassword">
+                  <mat-icon matPrefix>lock</mat-icon>
+                  <button 
+                    mat-icon-button 
+                    matSuffix 
+                    type="button"
+                    (click)="hideNewPassword = !hideNewPassword">
+                    <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('newPassword')?.invalid">
+                    Password must be at least 6 characters
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field full-width">
+                  <mat-label>Confirm New Password</mat-label>
+                  <input 
+                    matInput 
+                    [type]="hideConfirmPassword ? 'password' : 'text'" 
+                    formControlName="confirmPassword">
+                  <mat-icon matPrefix>lock</mat-icon>
+                  <button 
+                    mat-icon-button 
+                    matSuffix 
+                    type="button"
+                    (click)="hideConfirmPassword = !hideConfirmPassword">
+                    <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('confirmPassword')?.invalid">
+                    Please confirm your password
+                  </mat-error>
+                </mat-form-field>
+
+                <div class="error-message" *ngIf="passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched">
+                  <mat-icon>error</mat-icon>
+                  <span>{{ getPasswordErrorMessage() }}</span>
+                </div>
+
+                <button 
+                  mat-raised-button 
+                  color="primary" 
+                  type="submit"
+                  [disabled]="passwordForm.invalid || isUpdatingPassword"
+                  class="save-button">
+                  <mat-spinner *ngIf="isUpdatingPassword" diameter="20"></mat-spinner>
+                  <span *ngIf="!isUpdatingPassword">Change Password</span>
+                </button>
+              </form>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-divider></mat-divider>
+
+          <mat-card class="danger-zone-card">
+            <mat-card-header>
+              <mat-card-title>
+                <h3>Account Actions</h3>
+              </mat-card-title>
+            </mat-card-header>
+
+            <mat-card-content>
+              <div class="action-item">
+                <div class="action-info">
+                  <h4>Logout</h4>
+                  <p>Sign out of your account</p>
+                </div>
+                <button mat-stroked-button (click)="logout()">
+                  <mat-icon>logout</mat-icon>
+                  Logout
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

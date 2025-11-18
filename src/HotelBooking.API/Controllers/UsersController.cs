@@ -21,6 +21,62 @@ public class UsersController : ControllerBase
         _logger = logger;
     }
 
+    // GET: api/users/profile
+    [HttpGet("profile")]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<UserDto>> GetProfile()
+    {
+        try
+        {
+            // Get user ID from JWT claims
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Invalid or missing userId claim in token");
+                return Unauthorized(new { Message = "Invalid token" });
+            }
+
+            _logger.LogInformation("Retrieving profile for user ID {UserId}", userId);
+
+            // Get user from database
+            var user = await _context.Users
+                .Where(u => u.Id == userId && !u.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID {UserId} not found", userId);
+                return NotFound(new { Message = "User not found" });
+            }
+
+            // Return user DTO (without password)
+            var userDto = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                PhoneNumber = user.PhoneNumber,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt,
+                IsDeleted = user.IsDeleted
+            };
+
+            _logger.LogInformation("Profile retrieved successfully for user ID {UserId}", userId);
+
+            return Ok(userDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user profile");
+            return Problem("An error occurred while retrieving the profile");
+        }
+    }
+
     // GET: api/users
     [Authorize(Roles = "Admin")]
     [HttpGet]

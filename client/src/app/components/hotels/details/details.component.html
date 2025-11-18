@@ -1,0 +1,282 @@
+<div class="details-container">
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner diameter="60"></mat-spinner>
+    <p>Loading hotel details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="!isLoading && errorMessage">
+    <mat-icon>error_outline</mat-icon>
+    <h2>{{ errorMessage }}</h2>
+    <button mat-raised-button color="primary" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Search
+    </button>
+  </div>
+
+  <!-- Hotel Details -->
+  <div class="hotel-content" *ngIf="!isLoading && hotel && !errorMessage">
+    <!-- Back Button -->
+    <button mat-button class="back-button" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Search
+    </button>
+
+    <!-- Image Gallery -->
+    <mat-card class="gallery-card">
+      <mat-tab-group>
+        <mat-tab *ngFor="let image of hotelImages; let i = index" [label]="'Image ' + (i + 1)">
+          <div class="image-container">
+            <img [src]="image" [alt]="hotel.name + ' - Image ' + (i + 1)">
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card>
+
+    <!-- Hotel Information -->
+    <div class="info-section">
+      <mat-card class="info-card">
+        <mat-card-header>
+          <mat-card-title>
+            <h1>{{ hotel.name }}</h1>
+          </mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <!-- Location and Rating -->
+          <div class="header-info">
+            <div class="location">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ hotel.address }}, {{ hotel.city }}, {{ hotel.country }}</span>
+            </div>
+
+            <div class="rating">
+              <mat-icon *ngFor="let star of getRatingStars(hotel.rating)">
+                {{ star }}
+              </mat-icon>
+              <span class="rating-value">{{ hotel.rating }} / 5</span>
+            </div>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Description -->
+          <div class="description-section">
+            <h2>About This Hotel</h2>
+            <p>{{ hotel.description }}</p>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Amenities -->
+          <div class="amenities-section">
+            <h2>Amenities</h2>
+            <div class="amenities-grid">
+              <div class="amenity-item" *ngFor="let amenity of hotel.amenities">
+                <mat-icon>{{ getAmenityIcon(amenity) }}</mat-icon>
+                <span>{{ amenity }}</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Available Rooms -->
+      <mat-card class="rooms-card">
+        <mat-card-header>
+          <mat-card-title>
+            <h2>Available Rooms</h2>
+          </mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="rooms-list">
+            <mat-card class="room-card" *ngFor="let room of availableRooms">
+              <div class="room-info">
+                <div class="room-header">
+                  <h3>{{ room.type }}</h3>
+                  <div class="room-price">
+                    <span class="price">${{ room.pricePerNight }}</span>
+                    <span class="per-night">/ night</span>
+                  </div>
+                </div>
+
+                <div class="room-details">
+                  <div class="detail-item">
+                    <mat-icon>people</mat-icon>
+                    <span>Up to {{ room.capacity }} guests</span>
+                  </div>
+
+                  <div class="detail-item">
+                    <mat-icon>meeting_room</mat-icon>
+                    <span>Room {{ room.roomNumber }}</span>
+                  </div>
+
+                  <div class="detail-item" *ngIf="room.isAvailable">
+                    <mat-icon class="available-icon">check_circle</mat-icon>
+                    <span>Available</span>
+                  </div>
+                </div>
+
+                <div class="room-amenities" *ngIf="room.amenities && room.amenities.length > 0">
+                  <mat-chip-set>
+                    <mat-chip *ngFor="let amenity of room.amenities">
+                      {{ amenity }}
+                    </mat-chip>
+                  </mat-chip-set>
+                </div>
+              </div>
+            </mat-card>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Booking Form -->
+    <mat-card class="booking-card">
+      <mat-card-header>
+        <mat-card-title>
+          <h2>Book Your Stay</h2>
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="bookingForm" (ngSubmit)="onBookNow()">
+          <!-- Date Selection -->
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Check-in Date</mat-label>
+              <input 
+                matInput 
+                [matDatepicker]="checkInPicker" 
+                formControlName="checkInDate"
+                [min]="minDate">
+              <mat-icon matPrefix>event</mat-icon>
+              <mat-datepicker-toggle matSuffix [for]="checkInPicker"></mat-datepicker-toggle>
+              <mat-datepicker #checkInPicker></mat-datepicker>
+              <mat-error *ngIf="bookingForm.get('checkInDate')?.invalid">
+                Check-in date is required
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Check-out Date</mat-label>
+              <input 
+                matInput 
+                [matDatepicker]="checkOutPicker" 
+                formControlName="checkOutDate"
+                [min]="bookingForm.value.checkInDate || minDate">
+              <mat-icon matPrefix>event</mat-icon>
+              <mat-datepicker-toggle matSuffix [for]="checkOutPicker"></mat-datepicker-toggle>
+              <mat-datepicker #checkOutPicker></mat-datepicker>
+              <mat-error *ngIf="bookingForm.get('checkOutDate')?.invalid">
+                Check-out date is required
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Guests and Room Selection -->
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Number of Guests</mat-label>
+              <input 
+                matInput 
+                type="number" 
+                formControlName="guests" 
+                min="1" 
+                max="10">
+              <mat-icon matPrefix>people</mat-icon>
+              <mat-error *ngIf="bookingForm.get('guests')?.invalid">
+                At least 1 guest required
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Select Room</mat-label>
+              <mat-select formControlName="roomId">
+                <mat-option *ngFor="let room of availableRooms" [value]="room.id">
+                  {{ room.type }} - ${{ room.pricePerNight }}/night
+                </mat-option>
+              </mat-select>
+              <mat-icon matPrefix>meeting_room</mat-icon>
+              <mat-error *ngIf="bookingForm.get('roomId')?.invalid">
+                Please select a room
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Guest Information -->
+          <h3>Guest Information</h3>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field full-width">
+              <mat-label>Full Name</mat-label>
+              <input matInput formControlName="guestName" placeholder="Enter your full name">
+              <mat-icon matPrefix>person</mat-icon>
+              <mat-error *ngIf="bookingForm.get('guestName')?.invalid">
+                Name is required
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="guestEmail" placeholder="your@email.com">
+              <mat-icon matPrefix>email</mat-icon>
+              <mat-error *ngIf="bookingForm.get('guestEmail')?.invalid">
+                Valid email is required
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="guestPhone" placeholder="+1 234 567 8900">
+              <mat-icon matPrefix>phone</mat-icon>
+              <mat-error *ngIf="bookingForm.get('guestPhone')?.invalid">
+                Phone number is required
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>Special Requests (Optional)</mat-label>
+            <textarea 
+              matInput 
+              formControlName="specialRequests" 
+              rows="3"
+              placeholder="Any special requests or requirements?"></textarea>
+            <mat-icon matPrefix>note</mat-icon>
+          </mat-form-field>
+
+          <mat-divider></mat-divider>
+
+          <!-- Price Summary -->
+          <div class="price-summary" *ngIf="selectedRoom && numberOfNights > 0">
+            <div class="summary-row">
+              <span>{{ selectedRoom.type }}</span>
+              <span>${{ selectedRoom.pricePerNight }} x {{ numberOfNights }} nights</span>
+            </div>
+            <div class="summary-row total">
+              <span>Total Price</span>
+              <span class="total-amount">${{ totalPrice }}</span>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button 
+            mat-raised-button 
+            color="primary" 
+            type="submit" 
+            class="book-button"
+            [disabled]="bookingForm.invalid || isBooking">
+            <mat-spinner *ngIf="isBooking" diameter="20"></mat-spinner>
+            <span *ngIf="!isBooking">Book Now</span>
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
