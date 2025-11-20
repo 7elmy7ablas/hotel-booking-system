@@ -18,28 +18,18 @@ export class BookingService {
   private apiUrl = `${environment.apiUrl}${environment.endpoints.bookings}`;
 
   createBooking(bookingData: CreateBookingRequest): Observable<Booking> {
-    const hotel = this.selectedHotelService.getSelectedHotel();
-    const userId = localStorage.getItem('userId');
+    const user = this.authService.getCurrentUser();
     
-    if (!hotel) {
-      throw new Error('No hotel selected');
-    }
-    
-    if (!userId) {
+    if (!user || !user.id) {
       throw new Error('User not authenticated');
     }
     
     const payload = {
-      hotelId: hotel.id,
+      userId: user.id,
       roomId: bookingData.roomId,
-      userId: parseInt(userId),
-      checkInDate: bookingData.checkInDate,
-      checkOutDate: bookingData.checkOutDate,
-      numberOfGuests: (bookingData as any).numberOfGuests || 1,
-      guestName: bookingData.guestName,
-      guestEmail: bookingData.guestEmail,
-      guestPhone: bookingData.guestPhone,
-      specialRequests: bookingData.specialRequests
+      checkIn: bookingData.checkInDate,
+      checkOut: bookingData.checkOutDate,
+      status: 'Pending'
     };
     
     console.log('📤 Creating booking:', payload);
@@ -50,13 +40,13 @@ export class BookingService {
         userId: response.userId || response.UserId,
         roomId: response.roomId || response.RoomId,
         hotelId: response.hotelId || response.HotelId,
-        checkInDate: response.checkInDate || response.CheckInDate,
-        checkOutDate: response.checkOutDate || response.CheckOutDate,
+        checkInDate: response.checkIn || response.CheckIn,
+        checkOutDate: response.checkOut || response.CheckOut,
         totalPrice: response.totalPrice || response.TotalPrice,
         status: response.status || response.Status,
-        guestName: response.guestName || response.GuestName,
-        guestEmail: response.guestEmail || response.GuestEmail,
-        guestPhone: response.guestPhone || response.GuestPhone,
+        guestName: response.guestName || response.GuestName || '',
+        guestEmail: response.guestEmail || response.GuestEmail || '',
+        guestPhone: response.guestPhone || response.GuestPhone || '',
         specialRequests: response.specialRequests || response.SpecialRequests,
         createdAt: response.createdAt || response.CreatedAt
       })),
@@ -73,13 +63,13 @@ export class BookingService {
         userId: b.userId || b.UserId,
         roomId: b.roomId || b.RoomId,
         hotelId: b.hotelId || b.HotelId,
-        checkInDate: b.checkInDate || b.CheckInDate,
-        checkOutDate: b.checkOutDate || b.CheckOutDate,
+        checkInDate: b.checkIn || b.CheckIn,
+        checkOutDate: b.checkOut || b.CheckOut,
         totalPrice: b.totalPrice || b.TotalPrice,
         status: b.status || b.Status,
-        guestName: b.guestName || b.GuestName,
-        guestEmail: b.guestEmail || b.GuestEmail,
-        guestPhone: b.guestPhone || b.GuestPhone,
+        guestName: b.guestName || b.GuestName || '',
+        guestEmail: b.guestEmail || b.GuestEmail || '',
+        guestPhone: b.guestPhone || b.GuestPhone || '',
         specialRequests: b.specialRequests || b.SpecialRequests,
         createdAt: b.createdAt || b.CreatedAt
       })))
@@ -93,13 +83,13 @@ export class BookingService {
         userId: b.userId || b.UserId,
         roomId: b.roomId || b.RoomId,
         hotelId: b.hotelId || b.HotelId,
-        checkInDate: b.checkInDate || b.CheckInDate,
-        checkOutDate: b.checkOutDate || b.CheckOutDate,
+        checkInDate: b.checkIn || b.CheckIn,
+        checkOutDate: b.checkOut || b.CheckOut,
         totalPrice: b.totalPrice || b.TotalPrice,
         status: b.status || b.Status,
-        guestName: b.guestName || b.GuestName,
-        guestEmail: b.guestEmail || b.GuestEmail,
-        guestPhone: b.guestPhone || b.GuestPhone,
+        guestName: b.guestName || b.GuestName || '',
+        guestEmail: b.guestEmail || b.GuestEmail || '',
+        guestPhone: b.guestPhone || b.GuestPhone || '',
         specialRequests: b.specialRequests || b.SpecialRequests,
         createdAt: b.createdAt || b.CreatedAt
       }))
@@ -113,13 +103,13 @@ export class BookingService {
         userId: b.userId || b.UserId,
         roomId: b.roomId || b.RoomId,
         hotelId: b.hotelId || b.HotelId,
-        checkInDate: b.checkInDate || b.CheckInDate,
-        checkOutDate: b.checkOutDate || b.CheckOutDate,
+        checkInDate: b.checkIn || b.CheckIn,
+        checkOutDate: b.checkOut || b.CheckOut,
         totalPrice: b.totalPrice || b.TotalPrice,
         status: b.status || b.Status,
-        guestName: b.guestName || b.GuestName,
-        guestEmail: b.guestEmail || b.GuestEmail,
-        guestPhone: b.guestPhone || b.GuestPhone,
+        guestName: b.guestName || b.GuestName || '',
+        guestEmail: b.guestEmail || b.GuestEmail || '',
+        guestPhone: b.guestPhone || b.GuestPhone || '',
         specialRequests: b.specialRequests || b.SpecialRequests,
         createdAt: b.createdAt || b.CreatedAt,
         hotelName: b.hotelName || b.HotelName,

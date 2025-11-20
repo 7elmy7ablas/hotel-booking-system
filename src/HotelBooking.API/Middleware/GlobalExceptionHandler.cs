@@ -35,8 +35,8 @@ public class GlobalExceptionHandler
         
         var statusCode = exception switch
         {
-            ArgumentException => (int)HttpStatusCode.BadRequest,
             ArgumentNullException => (int)HttpStatusCode.BadRequest,
+            ArgumentException => (int)HttpStatusCode.BadRequest,
             UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
             KeyNotFoundException => (int)HttpStatusCode.NotFound,
             InvalidOperationException => (int)HttpStatusCode.BadRequest,

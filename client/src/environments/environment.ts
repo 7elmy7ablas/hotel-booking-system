@@ -7,7 +7,7 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:7291/api',
+  apiUrl: 'https://localhost:5001/api',
   appName: 'Hotel Booking System',
   version: '1.0.0',
   

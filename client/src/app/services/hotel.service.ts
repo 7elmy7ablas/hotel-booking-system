@@ -20,30 +20,28 @@ export class HotelService {
       tap(response => {
         console.log('📦 HotelService: Raw response:', response);
         console.log('📦 Response type:', typeof response);
-        console.log('📦 Is array:', Array.isArray(response));
-        if (response && Array.isArray(response) && response.length > 0) {
-          console.log('📦 First hotel raw:', response[0]);
-          console.log('📦 First hotel keys:', Object.keys(response[0]));
-        }
       }),
       map((response: any) => {
-        // Ensure response is an array
         if (!response) {
           console.error('❌ HotelService: Response is null or undefined');
           return [];
         }
         
-        if (!Array.isArray(response)) {
-          console.error('❌ HotelService: Response is not an array');
+        let items = response;
+        if (response.items) {
+          items = response.items || response.Items;
+        }
+        
+        if (!Array.isArray(items)) {
+          console.error('❌ HotelService: Items is not an array');
           return [];
         }
         
-        // Handle both camelCase and PascalCase from backend
-        return response.map(hotel => ({
+        return items.map((hotel: any) => ({
           id: hotel.id || hotel.Id,
           name: hotel.name || hotel.Name,
           description: hotel.description || hotel.Description,
-          address: hotel.address || hotel.Address,
+          address: hotel.location || hotel.Location,
           city: hotel.city || hotel.City,
           country: hotel.country || hotel.Country,
           rating: hotel.rating || hotel.Rating,
@@ -55,9 +53,6 @@ export class HotelService {
       tap(hotels => {
         console.log('✅ HotelService: Transformed hotels:', hotels);
         console.log('✅ Number of hotels:', hotels.length);
-        if (hotels && hotels.length > 0) {
-          console.log('✅ First hotel transformed:', hotels[0]);
-        }
       })
     );
   }
@@ -73,7 +68,7 @@ export class HotelService {
         id: hotel.id || hotel.Id,
         name: hotel.name || hotel.Name,
         description: hotel.description || hotel.Description,
-        address: hotel.address || hotel.Address,
+        address: hotel.location || hotel.Location,
         city: hotel.city || hotel.City,
         country: hotel.country || hotel.Country,
         rating: hotel.rating || hotel.Rating,

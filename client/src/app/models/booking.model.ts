@@ -12,6 +12,8 @@ export interface Booking {
   guestPhone: string;
   specialRequests?: string;
   createdAt?: Date;
+  hotelName?: string;
+  roomType?: string;
 }
 
 export enum BookingStatus {
