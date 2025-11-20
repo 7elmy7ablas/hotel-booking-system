@@ -1,42 +1,60 @@
 <div class="hotels-container">
   <!-- Search/Filter Section -->
-  <section class="search-section">
+  <section class="search-section" aria-labelledby="search-heading">
     <div class="container">
-      <h1>Discover Your Perfect Stay</h1>
+      <h1 id="search-heading">Discover Your Perfect Stay</h1>
       <p class="subtitle">Browse through our collection of premium hotels</p>
 
       <div class="search-card">
-        <form [formGroup]="searchForm" class="search-filters">
+        <form [formGroup]="searchForm" class="search-filters" role="search" aria-label="Hotel search filters">
           <div class="filter-row">
             <div class="form-group">
+              <label for="search-input" class="sr-only">Search hotels, cities, or locations</label>
               <input 
+                id="search-input"
                 type="text" 
                 formControlName="search"
                 placeholder="Search hotels, cities, locations..."
                 class="form-input"
+                aria-label="Search hotels, cities, or locations"
+                aria-describedby="search-hint"
               />
+              <span id="search-hint" class="sr-only">Enter hotel name, city, or location to search</span>
             </div>
 
             <div class="form-group">
+              <label for="city-input" class="sr-only">City</label>
               <input 
+                id="city-input"
                 type="text" 
                 formControlName="city"
                 placeholder="City"
                 class="form-input"
+                aria-label="Filter by city"
               />
             </div>
 
             <div class="form-group">
+              <label for="guests-input" class="sr-only">Number of guests</label>
               <input 
+                id="guests-input"
                 type="number" 
                 formControlName="guests"
                 placeholder="Guests"
                 min="1"
+                max="20"
                 class="form-input"
+                aria-label="Number of guests"
+                aria-describedby="guests-hint"
               />
+              <span id="guests-hint" class="sr-only">Enter number of guests, minimum 1</span>
             </div>
 
-            <button type="button" (click)="onClearFilters()" class="btn btn-outline">
+            <button 
+              type="button" 
+              (click)="onClearFilters()" 
+              class="btn btn-outline"
+              aria-label="Clear all search filters">
               Clear Filters
             </button>
           </div>
@@ -46,11 +64,14 @@
   </section>
 
   <!-- Hotels Grid Section -->
-  <section class="hotels-section">
+  <section class="hotels-section" aria-labelledby="results-heading">
     <div class="container">
+      <h2 id="results-heading" class="sr-only">Search Results</h2>
+      
       <!-- Loading State -->
-      <div *ngIf="isLoading" class="hotels-grid">
-        <div *ngFor="let i of [1,2,3,4,5,6,7,8,9]" class="hotel-card-skeleton">
+      <div *ngIf="isLoading" class="hotels-grid" role="status" aria-live="polite" aria-label="Loading hotels">
+        <span class="sr-only">Loading hotels, please wait...</span>
+        <div *ngFor="let i of [1,2,3,4,5,6,7,8,9]" class="hotel-card-skeleton" aria-hidden="true">
           <div class="skeleton skeleton-image"></div>
           <div class="skeleton-content">
             <div class="skeleton skeleton-text"></div>
@@ -61,25 +82,31 @@
       </div>
 
       <!-- Hotels Grid -->
-      <div *ngIf="!isLoading && filteredHotels.length > 0" class="hotels-grid">
-        <div 
-          *ngFor="let hotel of filteredHotels" 
+      <div *ngIf="!isLoading && filteredHotels.length > 0" class="hotels-grid" role="list" aria-label="Available hotels">
+        <article 
+          *ngFor="let hotel of filteredHotels; let i = index" 
           class="hotel-card"
+          role="listitem"
+          [attr.aria-label]="'Hotel ' + (i + 1) + ' of ' + filteredHotels.length + ': ' + hotel.name"
+          tabindex="0"
           (click)="viewHotelDetails(hotel)"
+          (keydown.enter)="viewHotelDetails(hotel)"
+          (keydown.space)="viewHotelDetails(hotel); $event.preventDefault()"
         >
           <div class="hotel-image-wrapper">
             <img 
               [src]="hotel.imageUrl || defaultHotelImage" 
-              [alt]="hotel.name"
+              [alt]="'Photo of ' + hotel.name + ' in ' + hotel.city"
               (error)="onImageError($event)"
               class="hotel-image"
+              loading="lazy"
             />
-            <div class="image-overlay"></div>
-            <div class="hotel-rating-badge">
-              <span class="rating-icon">⭐</span>
+            <div class="image-overlay" aria-hidden="true"></div>
+            <div class="hotel-rating-badge" role="img" [attr.aria-label]="'Rating: ' + (hotel.rating || 4.5) + ' out of 5 stars'">
+              <span class="rating-icon" aria-hidden="true">⭐</span>
               <span class="rating-value">{{ hotel.rating || 4.5 }}</span>
             </div>
-            <div class="price-badge">
+            <div class="price-badge" role="text" aria-label="Starting from $99 per night">
               <span class="price-label">From</span>
               <span class="price-value">$99</span>
               <span class="price-period">/night</span>
@@ -89,52 +116,59 @@
           <div class="hotel-content">
             <h3 class="hotel-name">{{ hotel.name }}</h3>
             <p class="hotel-location">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
+              <span class="sr-only">Location:</span>
               {{ hotel.city }}, {{ hotel.country }}
             </p>
 
-            <div class="hotel-amenities">
-              <span *ngFor="let amenity of hotel.amenities?.slice(0, 3)" class="amenity-tag">
+            <div class="hotel-amenities" role="list" aria-label="Hotel amenities">
+              <span *ngFor="let amenity of hotel.amenities?.slice(0, 3)" class="amenity-tag" role="listitem">
                 {{ amenity }}
               </span>
             </div>
 
             <div class="hotel-actions">
-              <button class="btn btn-outline btn-sm" (click)="viewHotelDetails(hotel)">
+              <button 
+                class="btn btn-outline btn-sm" 
+                (click)="viewHotelDetails(hotel); $event.stopPropagation()"
+                [attr.aria-label]="'View details for ' + hotel.name">
                 View Details
               </button>
               <button 
                 *ngIf="isAuthenticated" 
                 class="btn btn-primary btn-sm"
                 (click)="bookHotel(hotel, $event)"
-              >
+                [attr.aria-label]="'Book ' + hotel.name + ' now'">
                 Book Now
               </button>
               <button 
                 *ngIf="!isAuthenticated" 
                 class="btn btn-ghost btn-sm"
                 (click)="bookHotel(hotel, $event)"
-              >
+                aria-label="Login required to book this hotel">
                 Login to Book
               </button>
             </div>
           </div>
-        </div>
+        </article>
       </div>
 
       <!-- Empty State -->
-      <div *ngIf="!isLoading && filteredHotels.length === 0" class="empty-state">
-        <div class="empty-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div *ngIf="!isLoading && filteredHotels.length === 0" class="empty-state" role="status" aria-live="polite">
+        <div class="empty-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" focusable="false">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
         <h3>No Hotels Found</h3>
         <p>We couldn't find any hotels matching your criteria. Try adjusting your filters.</p>
-        <button (click)="onClearFilters()" class="btn btn-primary">
+        <button 
+          (click)="onClearFilters()" 
+          class="btn btn-primary"
+          aria-label="Clear all filters and show all hotels">
           Clear Filters
         </button>
       </div>

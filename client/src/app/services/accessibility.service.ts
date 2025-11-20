@@ -3,84 +3,175 @@ import { Injectable } from '@angular/core';
 /**
  * Accessibility Service
  * 
- * Provides utilities for managing accessibility features throughout the application.
- * Helps ensure WCAG 2.1 AA compliance.
+ * Provides utilities for managing accessibility features including:
+ * - ARIA live region announcements
+ * - Focus management
+ * - Keyboard navigation helpers
+ * - Screen reader utilities
+ * 
+ * WCAG 2.1 AA Compliance
  */
 @Injectable({
   providedIn: 'root'
 })
 export class AccessibilityService {
-  
-  /**
-   * Announce message to screen readers
-   * Uses ARIA live region
-   */
-  announce(message: string, priority: 'polite' | 'assertive' = 'polite'): void {
-    const liveRegion = this.getOrCreateLiveRegion(priority);
-    
-    // Clear and set new message
-    liveRegion.textContent = '';
-    setTimeout(() => {
-      liveRegion.textContent = message;
-    }, 100);
+  private politeRegion: HTMLElement | null = null;
+  private assertiveRegion: HTMLElement | null = null;
+
+  constructor() {
+    // Initialize ARIA live regions on service creation
+    this.initializeLiveRegions();
   }
 
   /**
-   * Get or create ARIA live region for announcements
+   * Initialize ARIA live regions for screen reader announcements
    */
-  private getOrCreateLiveRegion(priority: 'polite' | 'assertive'): HTMLElement {
-    const id = `aria-live-${priority}`;
-    let liveRegion = document.getElementById(id);
-    
-    if (!liveRegion) {
-      liveRegion = document.createElement('div');
-      liveRegion.id = id;
-      liveRegion.setAttribute('aria-live', priority);
-      liveRegion.setAttribute('aria-atomic', 'true');
-      liveRegion.className = 'sr-only';
-      document.body.appendChild(liveRegion);
+  private initializeLiveRegions(): void {
+    // Polite region for non-urgent announcements
+    this.politeRegion = document.getElementById('aria-live-polite');
+    if (!this.politeRegion) {
+      this.politeRegion = this.createLiveRegion('aria-live-polite', 'polite');
     }
-    
-    return liveRegion;
+
+    // Assertive region for urgent announcements
+    this.assertiveRegion = document.getElementById('aria-live-assertive');
+    if (!this.assertiveRegion) {
+      this.assertiveRegion = this.createLiveRegion('aria-live-assertive', 'assertive');
+    }
   }
 
   /**
-   * Set focus to element by ID
+   * Create an ARIA live region element
    */
-  setFocus(elementId: string, delay: number = 0): void {
+  private createLiveRegion(id: string, politeness: 'polite' | 'assertive'): HTMLElement {
+    const region = document.createElement('div');
+    region.id = id;
+    region.setAttribute('aria-live', politeness);
+    region.setAttribute('aria-atomic', 'true');
+    region.className = 'sr-only';
+    document.body.appendChild(region);
+    return region;
+  }
+
+  /**
+   * Announce a message to screen readers (polite)
+   * Use for non-urgent notifications
+   */
+  announce(message: string, delay: number = 100): void {
+    if (!this.politeRegion) {
+      this.initializeLiveRegions();
+    }
+
     setTimeout(() => {
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.focus();
+      if (this.politeRegion) {
+        this.politeRegion.textContent = message;
+        
+        // Clear after 5 seconds to allow new announcements
+        setTimeout(() => {
+          if (this.politeRegion) {
+            this.politeRegion.textContent = '';
+          }
+        }, 5000);
       }
     }, delay);
   }
 
   /**
-   * Trap focus within a container (for modals, dialogs)
+   * Announce an urgent message to screen readers (assertive)
+   * Use for errors and critical notifications
+   */
+  announceUrgent(message: string, delay: number = 100): void {
+    if (!this.assertiveRegion) {
+      this.initializeLiveRegions();
+    }
+
+    setTimeout(() => {
+      if (this.assertiveRegion) {
+        this.assertiveRegion.textContent = message;
+        
+        // Clear after 5 seconds
+        setTimeout(() => {
+          if (this.assertiveRegion) {
+            this.assertiveRegion.textContent = '';
+          }
+        }, 5000);
+      }
+    }, delay);
+  }
+
+  /**
+   * Set focus to an element by ID
+   * Useful for skip links and focus management
+   */
+  focusElement(elementId: string): void {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.focus();
+      
+      // Announce focus change to screen readers
+      const label = element.getAttribute('aria-label') || 
+                    element.getAttribute('title') || 
+                    element.textContent?.trim() || 
+                    'Element';
+      this.announce(`Focused on ${label}`);
+    }
+  }
+
+  /**
+   * Set focus to the first focusable element within a container
+   */
+  focusFirstElement(container: HTMLElement): void {
+    const focusableElements = this.getFocusableElements(container);
+    if (focusableElements.length > 0) {
+      (focusableElements[0] as HTMLElement).focus();
+    }
+  }
+
+  /**
+   * Get all focusable elements within a container
+   */
+  getFocusableElements(container: HTMLElement): Element[] {
+    const focusableSelectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+      '[contenteditable="true"]'
+    ].join(', ');
+
+    return Array.from(container.querySelectorAll(focusableSelectors));
+  }
+
+  /**
+   * Trap focus within a container (useful for modals)
    */
   trapFocus(container: HTMLElement): () => void {
-    const focusableElements = container.querySelectorAll(
-      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
-    
+    const focusableElements = this.getFocusableElements(container);
     const firstElement = focusableElements[0] as HTMLElement;
     const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        if (e.shiftKey && document.activeElement === firstElement) {
-          e.preventDefault();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+
+      if (event.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          event.preventDefault();
           lastElement.focus();
-        } else if (!e.shiftKey && document.activeElement === lastElement) {
-          e.preventDefault();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          event.preventDefault();
           firstElement.focus();
         }
       }
     };
-    
+
     container.addEventListener('keydown', handleKeyDown);
-    
+
     // Return cleanup function
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
@@ -88,96 +179,100 @@ export class AccessibilityService {
   }
 
   /**
-   * Generate unique ID for form controls
-   */
-  generateId(prefix: string = 'a11y'): string {
-    return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
-   * Check if element is visible to screen readers
+   * Check if an element is visible to screen readers
    */
   isVisibleToScreenReader(element: HTMLElement): boolean {
-    const style = window.getComputedStyle(element);
-    return style.display !== 'none' && 
-           style.visibility !== 'hidden' && 
-           element.getAttribute('aria-hidden') !== 'true';
+    const ariaHidden = element.getAttribute('aria-hidden') === 'true';
+    const hidden = element.hasAttribute('hidden');
+    const displayNone = window.getComputedStyle(element).display === 'none';
+    const visibilityHidden = window.getComputedStyle(element).visibility === 'hidden';
+
+    return !ariaHidden && !hidden && !displayNone && !visibilityHidden;
   }
 
   /**
-   * Get accessible name for element
+   * Generate a unique ID for accessibility purposes
    */
-  getAccessibleName(element: HTMLElement): string {
-    // Check aria-label
-    const ariaLabel = element.getAttribute('aria-label');
-    if (ariaLabel) return ariaLabel;
+  generateId(prefix: string = 'a11y'): string {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Announce page navigation to screen readers
+   */
+  announceNavigation(pageName: string): void {
+    this.announce(`Navigated to ${pageName} page`);
+  }
+
+  /**
+   * Announce form validation errors
+   */
+  announceFormErrors(errors: string[]): void {
+    const message = errors.length === 1
+      ? `Form error: ${errors[0]}`
+      : `Form has ${errors.length} errors: ${errors.join(', ')}`;
     
-    // Check aria-labelledby
-    const labelledBy = element.getAttribute('aria-labelledby');
-    if (labelledBy) {
-      const labelElement = document.getElementById(labelledBy);
-      if (labelElement) return labelElement.textContent || '';
+    this.announceUrgent(message);
+  }
+
+  /**
+   * Announce loading state
+   */
+  announceLoading(isLoading: boolean, context: string = 'content'): void {
+    if (isLoading) {
+      this.announce(`Loading ${context}, please wait`);
+    } else {
+      this.announce(`${context} loaded`);
     }
-    
-    // Check associated label
-    if (element instanceof HTMLInputElement) {
-      const label = document.querySelector(`label[for="${element.id}"]`);
-      if (label) return label.textContent || '';
+  }
+
+  /**
+   * Announce search results
+   */
+  announceSearchResults(count: number, query: string): void {
+    if (count === 0) {
+      this.announce(`No results found for "${query}"`);
+    } else if (count === 1) {
+      this.announce(`1 result found for "${query}"`);
+    } else {
+      this.announce(`${count} results found for "${query}"`);
     }
-    
-    // Check title
-    const title = element.getAttribute('title');
-    if (title) return title;
-    
-    // Check text content
-    return element.textContent || '';
   }
 
   /**
-   * Validate color contrast ratio
-   * Returns true if contrast meets WCAG AA standards (4.5:1 for normal text)
+   * Announce table updates
    */
-  validateContrast(foreground: string, background: string): boolean {
-    const ratio = this.getContrastRatio(foreground, background);
-    return ratio >= 4.5; // WCAG AA standard for normal text
+  announceTableUpdate(rowCount: number, tableName: string = 'table'): void {
+    this.announce(`${tableName} updated with ${rowCount} rows`);
   }
 
   /**
-   * Calculate contrast ratio between two colors
+   * Check if user prefers reduced motion
    */
-  private getContrastRatio(color1: string, color2: string): number {
-    const l1 = this.getLuminance(color1);
-    const l2 = this.getLuminance(color2);
-    const lighter = Math.max(l1, l2);
-    const darker = Math.min(l1, l2);
-    return (lighter + 0.05) / (darker + 0.05);
+  prefersReducedMotion(): boolean {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
   /**
-   * Get relative luminance of a color
+   * Check if user prefers high contrast
    */
-  private getLuminance(color: string): number {
-    // This is a simplified version - in production, use a proper color library
-    const rgb = this.hexToRgb(color);
-    if (!rgb) return 0;
-    
-    const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(val => {
-      val = val / 255;
-      return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
-    });
-    
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  prefersHighContrast(): boolean {
+    return window.matchMedia('(prefers-contrast: high)').matches;
   }
 
   /**
-   * Convert hex color to RGB
+   * Get the current focus element
    */
-  private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
+  getCurrentFocus(): Element | null {
+    return document.activeElement;
+  }
+
+  /**
+   * Restore focus to a previously focused element
+   */
+  restoreFocus(element: HTMLElement | null): void {
+    if (element && element.focus) {
+      element.focus();
+    }
   }
 }
