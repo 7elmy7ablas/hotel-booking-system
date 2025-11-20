@@ -145,6 +145,8 @@ try
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
+            
+            Log.Information("CORS Policy 'AllowAngularApp' configured with origins: {Origins}", string.Join(", ", allowedOrigins));
         });
     });
 
@@ -226,7 +228,11 @@ try
     app.UseIpRateLimiting();
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
+    
+    // CORS must be before Authentication and Authorization
     app.UseCors("AllowAngularApp");
+    Log.Information("CORS middleware enabled for policy: AllowAngularApp");
+    
     app.UseResponseCaching();
 
     app.UseAuthentication();
@@ -259,8 +265,8 @@ try
     Log.Information("║  Version:     {Version,-44} ║", version);
     Log.Information("║  Environment: {Environment,-44} ║", environment);
     Log.Information("║  Startup Time: {StartupTime,-43} ║", $"{startupDuration:F2}s");
-    Log.Information("║  URLs:        https://localhost:5001                       ║");
-    Log.Information("║               http://localhost:5000                        ║");
+    Log.Information("║  URLs:        https://localhost:7291                       ║");
+    Log.Information("║               http://localhost:5156                        ║");
     Log.Information("╚════════════════════════════════════════════════════════════╝");
 
     app.Run();

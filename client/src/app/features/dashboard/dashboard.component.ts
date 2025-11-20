@@ -18,7 +18,7 @@ import { AuthService } from '../../core/services/auth.service';
   ],
   template: `
     <div class="dashboard-container">
-      <h1>Welcome, {{ authService.currentUser()?.FirstName }}!</h1>
+      <h1>Welcome, {{ authService.currentUser()?.FullName }}!</h1>
 
       <div class="cards-grid">
         <mat-card>

@@ -43,11 +43,15 @@ export class AppComponent implements OnInit {
   version = environment.version;
 
   ngOnInit(): void {
-    // Log application info in development
+    // Always log API URL for debugging
+    console.log(`🏨 ${this.title} v${this.version}`);
+    console.log(`📍 Environment: ${environment.production ? 'Production' : 'Development'}`);
+    console.log(`🔗 API URL: ${environment.apiUrl}`);
+    
+    // Additional logging in development
     if (environment.features.enableLogging) {
-      console.log(`🏨 ${this.title} v${this.version}`);
-      console.log(`📍 Environment: ${environment.production ? 'Production' : 'Development'}`);
-      console.log(`🔗 API URL: ${environment.apiUrl}`);
+      console.log(`🔧 Debug Mode: ${environment.features.enableDebugMode}`);
+      console.log(`📊 Mock Data: ${environment.features.enableMockData}`);
     }
   }
 }
