@@ -2,7 +2,7 @@ using Xunit;
 using System.Net;
 using System.Net.Http.Json;
 using HotelBooking.Domain.Entities;
-using HotelBooking.Application.DTOs;
+using HotelBooking.API.DTOs;
 
 namespace HotelBooking.Tests;
 
