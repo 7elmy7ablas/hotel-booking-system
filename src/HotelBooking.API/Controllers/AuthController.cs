@@ -72,8 +72,8 @@ public class AuthController : ControllerBase
             if (existingUser != null)
             {
                 // SECURITY: Mask email in logs
-                var maskedEmail = _sanitizationService.SanitizeLogMessage(registerDto.Email);
-                _logger.LogWarning("Registration attempt with existing email: {Email}", maskedEmail);
+                var maskedEmailExisting = _sanitizationService.SanitizeLogMessage(registerDto.Email);
+                _logger.LogWarning("Registration attempt with existing email: {Email}", maskedEmailExisting);
                 return BadRequest(new { message = "Email already exists" });
             }
 
@@ -95,8 +95,8 @@ public class AuthController : ControllerBase
             await _context.SaveChangesAsync();
 
             // SECURITY: Mask email in logs
-            var maskedEmail = _sanitizationService.SanitizeLogMessage(user.Email);
-            _logger.LogInformation("User registered successfully: {Email}", maskedEmail);
+            var maskedEmailSuccess = _sanitizationService.SanitizeLogMessage(user.Email);
+            _logger.LogInformation("User registered successfully: {Email}", maskedEmailSuccess);
 
             // Map to UserDto
             var userDto = new UserDto
@@ -144,8 +144,8 @@ public class AuthController : ControllerBase
             if (user == null)
             {
                 // SECURITY: Mask email in logs, use generic message
-                var maskedEmail = _sanitizationService.SanitizeLogMessage(loginDto.Email);
-                _logger.LogWarning("Login attempt with non-existent email: {Email}", maskedEmail);
+                var maskedEmailNotFound = _sanitizationService.SanitizeLogMessage(loginDto.Email);
+                _logger.LogWarning("Login attempt with non-existent email: {Email}", maskedEmailNotFound);
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
@@ -153,8 +153,8 @@ public class AuthController : ControllerBase
             if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
             {
                 // SECURITY: Never log password attempts, mask email
-                var maskedEmail = _sanitizationService.SanitizeLogMessage(loginDto.Email);
-                _logger.LogWarning("Failed login attempt for email: {Email}", maskedEmail);
+                var maskedEmailFailed = _sanitizationService.SanitizeLogMessage(loginDto.Email);
+                _logger.LogWarning("Failed login attempt for email: {Email}", maskedEmailFailed);
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
@@ -222,8 +222,8 @@ public class AuthController : ControllerBase
             if (user == null)
             {
                 // SECURITY: Mask email in logs
-                var maskedEmail = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
-                _logger.LogWarning("Password change attempt for non-existent email: {Email}", maskedEmail);
+                var maskedEmailNotFound = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
+                _logger.LogWarning("Password change attempt for non-existent email: {Email}", maskedEmailNotFound);
                 return NotFound(new { message = "User not found" });
             }
 
@@ -231,8 +231,8 @@ public class AuthController : ControllerBase
             if (!BCrypt.Net.BCrypt.Verify(changePasswordDto.OldPassword, user.PasswordHash))
             {
                 // SECURITY: Never log passwords, mask email
-                var maskedEmail = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
-                _logger.LogWarning("Failed password change attempt for email: {Email} - Invalid old password", maskedEmail);
+                var maskedEmailInvalid = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
+                _logger.LogWarning("Failed password change attempt for email: {Email} - Invalid old password", maskedEmailInvalid);
                 return Unauthorized(new { message = "Invalid old password" });
             }
 
@@ -240,8 +240,8 @@ public class AuthController : ControllerBase
             if (!Validators.PasswordValidator.IsValid(changePasswordDto.NewPassword, out var passwordError))
             {
                 // SECURITY: Never log passwords, mask email
-                var maskedEmail = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
-                _logger.LogWarning("Password change attempt with weak password: {Email}", maskedEmail);
+                var maskedEmailWeak = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
+                _logger.LogWarning("Password change attempt with weak password: {Email}", maskedEmailWeak);
                 return BadRequest(new { message = passwordError });
             }
 

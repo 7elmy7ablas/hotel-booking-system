@@ -29,27 +29,23 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                          req.url.includes('/auth/register');
 
   // Clone request and add Authorization header if token exists
+  // SECURITY: No logging of tokens or auth operations
   let authReq = req;
   
   if (token && !isAuthEndpoint) {
-    console.log('🔒 Auth Interceptor: Adding Bearer token to request:', req.url);
-    console.log('🔑 Token (first 20 chars):', token.substring(0, 20) + '...');
     authReq = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
       }
     });
-  } else if (isAuthEndpoint) {
-    console.log('📭 Auth Interceptor: Skipping auth for endpoint:', req.url);
-  } else {
-    console.log('⚠️ Auth Interceptor: No token available for request:', req.url);
   }
+  // SECURITY: Removed all console.log statements to prevent token/URL leakage
 
   // Handle the request and catch errors
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        console.error('❌ Auth Interceptor: 401 Unauthorized - Clearing token and redirecting to login');
+        // SECURITY: Removed console.error to prevent information leakage
         
         // Clear invalid token using TokenService
         tokenService.clearToken();

@@ -25,6 +25,7 @@ export class TokenService {
 
   /**
    * Store JWT token with expiry information
+   * SECURITY: No logging of tokens or sensitive data
    */
   setToken(token: string, expiresAt: string | Date): void {
     localStorage.setItem('token', token);
@@ -32,7 +33,7 @@ export class TokenService {
     const expiryDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
     localStorage.setItem('tokenExpiry', expiryDate.toISOString());
     
-    console.log('✅ Token stored. Expires at:', expiryDate.toLocaleString());
+    // SECURITY: Removed console.log to prevent token leakage
     
     // Reset expiry flag
     this.tokenExpirySubject.next(false);
@@ -43,6 +44,7 @@ export class TokenService {
 
   /**
    * Get current token
+   * SECURITY: No logging of tokens
    */
   getToken(): string | null {
     const token = localStorage.getItem('token');
@@ -53,7 +55,7 @@ export class TokenService {
     
     // Check if token is expired
     if (this.isTokenExpired()) {
-      console.warn('⚠️ Token is expired');
+      // SECURITY: Removed console.warn to prevent information leakage
       this.handleExpiredToken();
       return null;
     }
@@ -116,6 +118,7 @@ export class TokenService {
 
   /**
    * Clear token and user data
+   * SECURITY: No logging of security operations
    */
   clearToken(): void {
     localStorage.removeItem('token');
@@ -126,14 +129,15 @@ export class TokenService {
     this.tokenExpirySubject.next(false);
     this.stopTokenExpiryCheck();
     
-    console.log('🗑️ Token cleared');
+    // SECURITY: Removed console.log to prevent information leakage
   }
 
   /**
    * Handle expired token - clear data and redirect to login
+   * SECURITY: No logging of security events
    */
   private handleExpiredToken(): void {
-    console.warn('🚨 Token expired - logging out user');
+    // SECURITY: Removed console.warn to prevent information leakage
     
     this.clearToken();
     this.tokenExpirySubject.next(true);
@@ -147,6 +151,7 @@ export class TokenService {
 
   /**
    * Start periodic token expiry check (every 30 seconds)
+   * SECURITY: No logging of security operations
    */
   private startTokenExpiryCheck(): void {
     // Stop existing check if any
@@ -160,22 +165,24 @@ export class TokenService {
       this.checkTokenExpiry();
     });
     
-    console.log('🔄 Token expiry check started');
+    // SECURITY: Removed console.log to prevent information leakage
   }
 
   /**
    * Stop token expiry check
+   * SECURITY: No logging of security operations
    */
   private stopTokenExpiryCheck(): void {
     if (this.tokenCheckSubscription) {
       this.tokenCheckSubscription.unsubscribe();
       this.tokenCheckSubscription = undefined;
-      console.log('⏹️ Token expiry check stopped');
+      // SECURITY: Removed console.log to prevent information leakage
     }
   }
 
   /**
    * Check if token is expired and handle accordingly
+   * SECURITY: No logging of security operations
    */
   private checkTokenExpiry(): void {
     const token = localStorage.getItem('token');
@@ -186,15 +193,9 @@ export class TokenService {
     
     if (this.isTokenExpired()) {
       this.handleExpiredToken();
-    } else {
-      const timeUntilExpiry = this.getTimeUntilExpiry();
-      const minutesUntilExpiry = Math.floor(timeUntilExpiry / 60000);
-      
-      // Warn if token expires in less than 5 minutes
-      if (minutesUntilExpiry <= 5 && minutesUntilExpiry > 0) {
-        console.warn(`⏰ Token expires in ${minutesUntilExpiry} minute(s)`);
-      }
     }
+    // SECURITY: Removed console.warn to prevent information leakage
+    // Token expiry warnings could reveal session timing to attackers
   }
 
   /**

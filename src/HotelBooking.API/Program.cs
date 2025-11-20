@@ -281,6 +281,7 @@ try
     app.UseResponseCompression();
     app.UseMiddleware<ResponseTransformerMiddleware>(); // Ensure consistent camelCase responses
     app.UseMiddleware<SecurityHeadersMiddleware>();
+    app.UseMiddleware<InputValidationMiddleware>(); // SECURITY: Validate all inputs for XSS/injection
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseMiddleware<GlobalExceptionHandler>();
     app.UseIpRateLimiting(); // Rate limiting before authentication
