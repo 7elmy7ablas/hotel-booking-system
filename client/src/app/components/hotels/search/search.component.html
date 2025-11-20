@@ -85,7 +85,7 @@
     <mat-card 
       class="hotel-card" 
       *ngFor="let hotel of hotels"
-      (click)="viewHotelDetails(hotel.id)">
+      (click)="viewHotelDetails(hotel)">
       <div class="hotel-image">
         <img 
           [src]="hotel.imageUrl || defaultHotelImage" 

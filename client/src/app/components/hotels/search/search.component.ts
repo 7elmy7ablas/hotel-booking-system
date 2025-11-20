@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { HotelService } from '../../../services/hotel.service';
+import { SelectedHotelService } from '../../../services/selected-hotel.service';
 import { Hotel } from '../../../models/hotel.model';
 
 @Component({
@@ -48,6 +49,7 @@ export class SearchComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private hotelService: HotelService,
+    private selectedHotelService: SelectedHotelService,
     private router: Router
   ) {
     this.searchForm = this.fb.group({
@@ -64,14 +66,44 @@ export class SearchComponent implements OnInit {
 
   loadAllHotels(): void {
     this.isLoading = true;
+    console.log('📡 Loading all hotels...');
+    
     this.hotelService.getHotels().subscribe({
       next: (response) => {
-        this.hotels = response;
+        console.log('✅ Hotels loaded:', response);
+        console.log('📦 Response type:', typeof response);
+        console.log('📦 Is array:', Array.isArray(response));
+        
+        // Ensure response is an array
+        if (!response) {
+          console.error('❌ Response is null or undefined');
+          this.hotels = [];
+        } else if (!Array.isArray(response)) {
+          console.error('❌ Response is not an array:', response);
+          this.hotels = [];
+        } else {
+          console.log('📊 Number of hotels:', response.length);
+          
+          // Validate hotel data
+          if (response.length > 0) {
+            const hotelsWithoutId = response.filter(h => !h.id);
+            if (hotelsWithoutId.length > 0) {
+              console.warn('⚠️ Found hotels without ID:', hotelsWithoutId);
+            }
+            
+            // Log first hotel for debugging
+            console.log('🏨 First hotel sample:', response[0]);
+          }
+          
+          this.hotels = response;
+        }
+        
         this.isLoading = false;
         this.hasSearched = true;
       },
       error: (error) => {
-        console.error('Error loading hotels:', error);
+        console.error('❌ Error loading hotels:', error);
+        this.hotels = [];
         this.isLoading = false;
         this.hasSearched = true;
       }
@@ -91,11 +123,13 @@ export class SearchComponent implements OnInit {
 
     this.hotelService.searchHotels(searchCriteria).subscribe({
       next: (response) => {
-        this.hotels = response;
+        // Ensure response is an array
+        this.hotels = Array.isArray(response) ? response : [];
         this.isLoading = false;
       },
       error: (error) => {
         console.error('Error searching hotels:', error);
+        this.hotels = [];
         this.isLoading = false;
         // Fallback to all hotels on error
         this.loadAllHotels();
@@ -113,8 +147,31 @@ export class SearchComponent implements OnInit {
     this.loadAllHotels();
   }
 
-  viewHotelDetails(hotelId: number): void {
-    this.router.navigate(['/hotels', hotelId]);
+  /**
+   * Navigate to hotel details page with validation
+   * Stores hotel in service and navigates to /hotel-details (no ID in URL)
+   */
+  viewHotelDetails(hotel: Hotel): void {
+    console.log('🏨 Attempting to view hotel details:', hotel);
+    
+    if (!hotel) {
+      console.error('❌ Hotel object is null or undefined');
+      alert('Cannot open hotel details. Hotel data is missing!');
+      return;
+    }
+    
+    if (!hotel.id) {
+      console.error('❌ Hotel ID is missing:', hotel);
+      alert('Cannot open hotel details. Hotel ID is missing!');
+      return;
+    }
+    
+    // Store hotel in service (also saves to sessionStorage)
+    this.selectedHotelService.setSelectedHotel(hotel);
+    
+    // Navigate to hotel details without ID in URL
+    console.log('✅ Navigating to /hotel-details');
+    this.router.navigate(['/hotel-details']);
   }
 
   getRatingStars(rating: number): string[] {

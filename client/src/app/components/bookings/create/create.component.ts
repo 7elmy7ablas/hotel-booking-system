@@ -186,19 +186,23 @@ export class CreateComponent implements OnInit {
 
   confirmBooking(): void {
     if (this.bookingDetailsForm.valid && this.guestInfoForm.valid && this.paymentForm.valid) {
+      if (!this.roomId) {
+        this.snackBar.open('Room ID is missing. Please select a room.', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
       this.isBooking = true;
 
       const bookingData = {
         roomId: this.roomId,
-        hotelId: this.hotelId,
         checkInDate: this.bookingDetailsForm.value.checkInDate,
         checkOutDate: this.bookingDetailsForm.value.checkOutDate,
         guestName: this.guestInfoForm.value.guestName,
         guestEmail: this.guestInfoForm.value.guestEmail,
         guestPhone: this.guestInfoForm.value.guestPhone,
-        specialRequests: this.guestInfoForm.value.specialRequests,
-        totalPrice: this.totalPrice,
-        paymentMethod: this.paymentForm.value.paymentMethod
+        specialRequests: this.guestInfoForm.value.specialRequests
       };
 
       this.bookingService.createBooking(bookingData).subscribe({

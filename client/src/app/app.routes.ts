@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
+import { hotelDetailsGuard } from './guards/hotel-details.guard';
 
 export const routes: Routes = [
   // Default redirect
@@ -31,8 +32,9 @@ export const routes: Routes = [
     title: 'Search Hotels - Hotel Booking'
   },
   {
-    path: 'hotels/:id',
+    path: 'hotel-details',
     loadComponent: () => import('./components/hotels/details/details.component').then(m => m.DetailsComponent),
+    canActivate: [hotelDetailsGuard],
     title: 'Hotel Details - Hotel Booking'
   },
 

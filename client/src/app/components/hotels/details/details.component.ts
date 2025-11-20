@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +16,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HotelService } from '../../../services/hotel.service';
+import { SelectedHotelService } from '../../../services/selected-hotel.service';
 import { BookingService } from '../../../services/booking.service';
 import { Hotel, Room } from '../../../models/hotel.model';
 
@@ -76,10 +77,10 @@ export class DetailsComponent implements OnInit {
   };
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
     private fb: FormBuilder,
     private hotelService: HotelService,
+    private selectedHotelService: SelectedHotelService,
     private bookingService: BookingService,
     private snackBar: MatSnackBar
   ) {
@@ -96,11 +97,22 @@ export class DetailsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const hotelId = this.route.snapshot.paramMap.get('id');
-    if (hotelId) {
-      this.loadHotelDetails(+hotelId);
-      this.loadRooms(+hotelId);
+    // Get hotel from service (loaded from sessionStorage if page refreshed)
+    const selectedHotel = this.selectedHotelService.getSelectedHotel();
+    
+    if (!selectedHotel) {
+      console.error('❌ No hotel selected, redirecting to /hotels');
+      this.router.navigate(['/hotels']);
+      return;
     }
+    
+    console.log('✅ Loading hotel from service:', selectedHotel.name);
+    this.hotel = selectedHotel;
+    this.hotelImages = this.generateHotelImages(selectedHotel);
+    this.isLoading = false;
+    
+    // Load rooms for this hotel
+    this.loadRooms(selectedHotel.id);
 
     // Watch for date changes to calculate price
     this.bookingForm.get('checkInDate')?.valueChanges.subscribe(() => {
@@ -119,21 +131,7 @@ export class DetailsComponent implements OnInit {
     });
   }
 
-  loadHotelDetails(hotelId: number): void {
-    this.isLoading = true;
-    this.hotelService.getHotelById(hotelId).subscribe({
-      next: (hotel) => {
-        this.hotel = hotel;
-        this.hotelImages = this.generateHotelImages(hotel);
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading hotel details:', error);
-        this.errorMessage = 'Failed to load hotel details';
-        this.isLoading = false;
-      }
-    });
-  }
+
 
   loadRooms(hotelId: number): void {
     this.hotelService.getRoomsByHotelId(hotelId).subscribe({
@@ -222,41 +220,47 @@ export class DetailsComponent implements OnInit {
   }
 
   onBookNow(): void {
-    if (this.bookingForm.valid) {
-      this.isBooking = true;
-
-      const bookingData = {
-        ...this.bookingForm.value,
-        hotelId: this.hotel?.id,
-        totalPrice: this.totalPrice
-      };
-
-      this.bookingService.createBooking(bookingData).subscribe({
-        next: (response) => {
-          this.isBooking = false;
-          this.snackBar.open('Booking successful!', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar']
-          });
-          this.router.navigate(['/bookings', response.id]);
-        },
-        error: (error) => {
-          this.isBooking = false;
-          this.snackBar.open(
-            error.error?.message || 'Booking failed. Please try again.',
-            'Close',
-            {
-              duration: 5000,
-              panelClass: ['error-snackbar']
-            }
-          );
-        }
-      });
-    } else {
+    if (this.bookingForm.invalid) {
       this.snackBar.open('Please fill in all required fields', 'Close', {
         duration: 3000
       });
+      return;
     }
+    
+    this.isBooking = true;
+
+    const bookingData: any = {
+      roomId: this.bookingForm.value.roomId,
+      checkInDate: this.bookingForm.value.checkInDate,
+      checkOutDate: this.bookingForm.value.checkOutDate,
+      guestName: this.bookingForm.value.guestName,
+      guestEmail: this.bookingForm.value.guestEmail,
+      guestPhone: this.bookingForm.value.guestPhone,
+      specialRequests: this.bookingForm.value.specialRequests
+    };
+
+    this.bookingService.createBooking(bookingData).subscribe({
+      next: (booking) => {
+        this.isBooking = false;
+        this.snackBar.open('Booking successful!', 'Close', {
+          duration: 3000,
+          panelClass: ['success-snackbar']
+        });
+        this.router.navigate(['/bookings']);
+      },
+      error: (error) => {
+        this.isBooking = false;
+        console.error('Booking error:', error);
+        this.snackBar.open(
+          error.error?.message || error.message || 'Booking failed. Please try again.',
+          'Close',
+          {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          }
+        );
+      }
+    });
   }
 
   goBack(): void {
