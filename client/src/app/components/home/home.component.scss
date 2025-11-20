@@ -1,0 +1,397 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.home-container {
+  min-height: 100vh;
+  background: $gray-50;
+}
+
+// Hero Section
+.hero {
+  position: relative;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $primary 0%, $secondary 100%);
+  overflow: hidden;
+  padding: $spacing-16 0;
+
+  @include mobile {
+    min-height: 500px;
+    padding: $spacing-12 0;
+  }
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: $white;
+}
+
+.hero-title {
+  font-size: $font-size-5xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-4;
+  color: $white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  @include mobile {
+    font-size: $font-size-3xl;
+  }
+}
+
+.hero-subtitle {
+  font-size: $font-size-xl;
+  margin-bottom: $spacing-8;
+  opacity: 0.95;
+  color: $white;
+
+  @include mobile {
+    font-size: $font-size-lg;
+  }
+}
+
+// Search Card with Glassmorphism
+.search-card {
+  @include glassmorphism(0.2);
+  max-width: 700px;
+  margin: 0 auto $spacing-8;
+  padding: $spacing-6;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+
+  @include mobile {
+    padding: $spacing-4;
+  }
+}
+
+.search-form {
+  display: flex;
+  gap: $spacing-3;
+
+  @include mobile {
+    flex-direction: column;
+  }
+}
+
+.search-input {
+  flex: 1;
+  padding: $spacing-4;
+  font-size: $font-size-base;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.9);
+  color: $gray-900;
+  @include transition(all);
+
+  &::placeholder {
+    color: $gray-500;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $white;
+    background: $white;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+  }
+}
+
+.search-btn {
+  white-space: nowrap;
+  padding: $spacing-4 $spacing-8;
+
+  @include mobile {
+    width: 100%;
+  }
+}
+
+.hero-actions {
+  display: flex;
+  gap: $spacing-4;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  .btn {
+    min-width: 160px;
+  }
+}
+
+// Section Header
+.section-header {
+  text-align: center;
+  margin-bottom: $spacing-12;
+
+  h2 {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $gray-900;
+    margin-bottom: $spacing-3;
+
+    @include mobile {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  .text-muted {
+    font-size: $font-size-lg;
+    color: $gray-600;
+  }
+}
+
+// Featured Hotels Section
+.featured-section {
+  background: $white;
+}
+
+.hotels-grid {
+  @include grid(3, $spacing-6);
+  margin-bottom: $spacing-8;
+
+  @include mobile {
+    gap: $spacing-4;
+  }
+}
+
+.hotel-card {
+  background: $white;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  @include card-elevation('md');
+  @include card-hover;
+  cursor: pointer;
+}
+
+.hotel-image {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform $transition-base $transition-timing;
+  }
+
+  .hotel-card:hover & img {
+    transform: scale(1.1);
+  }
+}
+
+.hotel-rating {
+  position: absolute;
+  top: $spacing-3;
+  right: $spacing-3;
+  background: rgba(255, 255, 255, 0.95);
+  padding: $spacing-2 $spacing-3;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $gray-900;
+  box-shadow: $shadow-md;
+
+  .rating-icon {
+    font-size: $font-size-base;
+  }
+}
+
+.hotel-info {
+  padding: $spacing-6;
+}
+
+.hotel-name {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $gray-900;
+  margin-bottom: $spacing-2;
+  @include text-truncate;
+}
+
+.hotel-location {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin-bottom: $spacing-3;
+  @include text-truncate;
+}
+
+.hotel-amenities {
+  display: flex;
+  gap: $spacing-2;
+  flex-wrap: wrap;
+  margin-bottom: $spacing-4;
+}
+
+.amenity-tag {
+  font-size: $font-size-xs;
+  padding: $spacing-1 $spacing-2;
+  background: $gray-100;
+  color: $gray-700;
+  border-radius: $radius-sm;
+}
+
+.hotel-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: $spacing-4;
+  border-top: 1px solid $gray-200;
+}
+
+.hotel-price {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $primary;
+}
+
+// Loading Skeleton
+.hotel-card-skeleton {
+  background: $white;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  @include card-elevation('md');
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 240px;
+}
+
+.skeleton-content {
+  padding: $spacing-6;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: $spacing-16 $spacing-4;
+  color: $gray-600;
+  font-size: $font-size-lg;
+}
+
+// How It Works Section
+.how-it-works-section {
+  background: $gray-50;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-8;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+    gap: $spacing-6;
+  }
+
+  @include tablet {
+    grid-template-columns: 1fr;
+    gap: $spacing-6;
+  }
+}
+
+.step-card {
+  text-align: center;
+  padding: $spacing-8;
+  background: $white;
+  border-radius: $radius-lg;
+  @include card-elevation('md');
+  @include transition(transform, box-shadow);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-xl;
+  }
+}
+
+.step-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto $spacing-6;
+  background: linear-gradient(135deg, $primary 0%, $secondary 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $white;
+
+  svg {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.step-card h3 {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $gray-900;
+  margin-bottom: $spacing-3;
+}
+
+.step-card p {
+  font-size: $font-size-base;
+  color: $gray-600;
+  line-height: $line-height-relaxed;
+  margin-bottom: 0;
+}
+
+// Call to Action Section
+.cta-section {
+  background: linear-gradient(135deg, $primary 0%, $secondary 100%);
+  color: $white;
+}
+
+.cta-card {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: $spacing-12 $spacing-6;
+
+  h2 {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $white;
+    margin-bottom: $spacing-4;
+
+    @include mobile {
+      font-size: $font-size-2xl;
+    }
+  }
+
+  p {
+    font-size: $font-size-lg;
+    margin-bottom: $spacing-8;
+    opacity: 0.95;
+    color: $white;
+  }
+
+  .btn {
+    background: $white;
+    color: $primary;
+    font-weight: $font-weight-semibold;
+
+    &:hover {
+      background: $gray-100;
+      transform: translateY(-2px);
+      box-shadow: $shadow-xl;
+    }
+  }
+}

@@ -1,5 +1,5 @@
 export interface Hotel {
-  id: number;
+  id: string;
   name: string;
   description: string;
   address: string;
@@ -12,8 +12,8 @@ export interface Hotel {
 }
 
 export interface Room {
-  id: number;
-  hotelId: number;
+  id: string;
+  hotelId: string;
   roomNumber: string;
   type: string;
   capacity: number;

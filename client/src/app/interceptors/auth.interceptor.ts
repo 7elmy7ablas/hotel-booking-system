@@ -2,18 +2,16 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { TokenService } from '../services/token.service';
 
 /**
  * Auth Interceptor - Adds JWT token to HTTP requests
  * 
  * This functional interceptor:
- * 1. ALWAYS gets the LATEST JWT token directly from localStorage (stateless)
+ * 1. Gets valid JWT token from TokenService (with expiry check)
  * 2. Adds Authorization header with Bearer token to requests
  * 3. Skips auth header for login/register endpoints
  * 4. Handles 401 Unauthorized responses by redirecting to login
- * 
- * IMPORTANT: This interceptor is completely stateless - it reads the token
- * from localStorage on EVERY request to ensure it always has the latest token.
  * 
  * @param req - The outgoing HTTP request
  * @param next - The next handler in the chain
@@ -21,10 +19,10 @@ import { catchError, throwError } from 'rxjs';
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
+  const tokenService = inject(TokenService);
 
-  // ALWAYS get the latest token directly from localStorage (stateless approach)
-  // This ensures we always have the most recent token, even if it was just saved
-  const token = localStorage.getItem('token');
+  // Get token from TokenService (includes expiry validation)
+  const token = tokenService.getToken();
 
   // Skip adding token for auth endpoints
   const isAuthEndpoint = req.url.includes('/auth/login') || 
@@ -53,12 +51,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 401) {
         console.error('❌ Auth Interceptor: 401 Unauthorized - Clearing token and redirecting to login');
         
-        // Clear invalid token
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        // Clear invalid token using TokenService
+        tokenService.clearToken();
         
         // Redirect to login
-        router.navigate(['/login']);
+        router.navigate(['/login'], {
+          queryParams: { returnUrl: router.url, reason: 'unauthorized' }
+        });
       }
       
       return throwError(() => error);

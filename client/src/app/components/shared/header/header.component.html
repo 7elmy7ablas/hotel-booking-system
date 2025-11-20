@@ -1,59 +1,65 @@
-<mat-toolbar color="primary" class="header-toolbar">
+<mat-toolbar color="primary" class="header-toolbar" role="banner">
   <div class="header-container">
     <!-- Logo/Brand -->
-    <div class="brand" routerLink="/">
-      <mat-icon class="brand-icon">hotel</mat-icon>
+    <a class="brand" routerLink="/" aria-label="Hotel Booking - Home">
+      <mat-icon class="brand-icon" aria-hidden="true">hotel</mat-icon>
       <span class="brand-name">Hotel Booking</span>
-    </div>
+    </a>
 
     <!-- Desktop Navigation -->
-    <nav class="desktop-nav">
-      <a mat-button routerLink="/hotels" routerLinkActive="active-link">
-        <mat-icon>search</mat-icon>
-        Hotels
+    <nav class="desktop-nav" role="navigation" aria-label="Main navigation">
+      <a mat-button routerLink="/hotels" routerLinkActive="active-link" aria-label="Browse hotels">
+        <mat-icon aria-hidden="true">search</mat-icon>
+        <span>Hotels</span>
       </a>
 
-      <a mat-button routerLink="/my-bookings" routerLinkActive="active-link" *ngIf="isAuthenticated">
-        <mat-icon>event_note</mat-icon>
-        My Bookings
+      <a mat-button routerLink="/my-bookings" routerLinkActive="active-link" *ngIf="isAuthenticated" aria-label="View my bookings">
+        <mat-icon aria-hidden="true">event_note</mat-icon>
+        <span>My Bookings</span>
       </a>
 
-      <a mat-button routerLink="/profile" routerLinkActive="active-link" *ngIf="isAuthenticated">
-        <mat-icon>person</mat-icon>
-        Profile
+      <a mat-button routerLink="/profile" routerLinkActive="active-link" *ngIf="isAuthenticated" aria-label="View my profile">
+        <mat-icon aria-hidden="true">person</mat-icon>
+        <span>Profile</span>
       </a>
     </nav>
 
     <!-- Desktop Auth Actions -->
-    <div class="auth-actions desktop-auth">
+    <div class="auth-actions desktop-auth" role="navigation" aria-label="User account">
       <ng-container *ngIf="!isAuthenticated">
-        <button mat-button routerLink="/login">
-          <mat-icon>login</mat-icon>
-          Login
+        <button mat-button routerLink="/login" aria-label="Login to your account">
+          <mat-icon aria-hidden="true">login</mat-icon>
+          <span>Login</span>
         </button>
-        <button mat-raised-button color="accent" routerLink="/register">
-          Register
+        <button mat-raised-button color="accent" routerLink="/register" aria-label="Create new account">
+          <span>Register</span>
         </button>
       </ng-container>
 
       <ng-container *ngIf="isAuthenticated">
-        <button mat-button [matMenuTriggerFor]="userMenu" class="user-menu-button">
-          <mat-icon>account_circle</mat-icon>
+        <button 
+          mat-button 
+          [matMenuTriggerFor]="userMenu" 
+          class="user-menu-button"
+          aria-label="User menu for {{ userName }}"
+          aria-haspopup="true"
+          [attr.aria-expanded]="isUserMenuOpen">
+          <mat-icon aria-hidden="true">account_circle</mat-icon>
           <span class="user-name">{{ userName }}</span>
-          <mat-icon>arrow_drop_down</mat-icon>
+          <mat-icon aria-hidden="true">arrow_drop_down</mat-icon>
         </button>
-        <mat-menu #userMenu="matMenu">
-          <button mat-menu-item routerLink="/profile">
-            <mat-icon>person</mat-icon>
+        <mat-menu #userMenu="matMenu" (opened)="isUserMenuOpen = true" (closed)="isUserMenuOpen = false">
+          <button mat-menu-item routerLink="/profile" aria-label="Go to profile">
+            <mat-icon aria-hidden="true">person</mat-icon>
             <span>Profile</span>
           </button>
-          <button mat-menu-item routerLink="/my-bookings">
-            <mat-icon>event_note</mat-icon>
+          <button mat-menu-item routerLink="/my-bookings" aria-label="View my bookings">
+            <mat-icon aria-hidden="true">event_note</mat-icon>
             <span>My Bookings</span>
           </button>
-          <mat-divider></mat-divider>
-          <button mat-menu-item (click)="logout()">
-            <mat-icon>logout</mat-icon>
+          <mat-divider role="separator"></mat-divider>
+          <button mat-menu-item (click)="logout()" aria-label="Logout from account">
+            <mat-icon aria-hidden="true">logout</mat-icon>
             <span>Logout</span>
           </button>
         </mat-menu>
@@ -61,75 +67,95 @@
     </div>
 
     <!-- Mobile Menu Button -->
-    <button mat-icon-button class="mobile-menu-button" (click)="toggleMobileMenu()">
-      <mat-icon>menu</mat-icon>
+    <button 
+      mat-icon-button 
+      class="mobile-menu-button" 
+      (click)="toggleMobileMenu()"
+      aria-label="Toggle mobile menu"
+      [attr.aria-expanded]="isMobileMenuOpen"
+      aria-controls="mobile-navigation">
+      <mat-icon aria-hidden="true">menu</mat-icon>
     </button>
   </div>
 </mat-toolbar>
 
 <!-- Mobile Navigation Drawer -->
-<div class="mobile-nav-overlay" [class.open]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
-<div class="mobile-nav" [class.open]="isMobileMenuOpen">
+<div 
+  class="mobile-nav-overlay" 
+  [class.open]="isMobileMenuOpen" 
+  (click)="closeMobileMenu()"
+  [attr.aria-hidden]="!isMobileMenuOpen"
+  role="presentation"></div>
+<nav 
+  id="mobile-navigation"
+  class="mobile-nav" 
+  [class.open]="isMobileMenuOpen"
+  role="navigation"
+  aria-label="Mobile navigation"
+  [attr.aria-hidden]="!isMobileMenuOpen">
   <div class="mobile-nav-header">
     <div class="brand">
-      <mat-icon class="brand-icon">hotel</mat-icon>
+      <mat-icon class="brand-icon" aria-hidden="true">hotel</mat-icon>
       <span class="brand-name">Hotel Booking</span>
     </div>
-    <button mat-icon-button (click)="closeMobileMenu()">
-      <mat-icon>close</mat-icon>
+    <button 
+      mat-icon-button 
+      (click)="closeMobileMenu()"
+      aria-label="Close mobile menu">
+      <mat-icon aria-hidden="true">close</mat-icon>
     </button>
   </div>
 
-  <mat-divider></mat-divider>
+  <mat-divider role="separator"></mat-divider>
 
   <div class="mobile-nav-content">
     <!-- User Info (if logged in) -->
-    <div class="mobile-user-info" *ngIf="isAuthenticated">
-      <mat-icon class="user-avatar">account_circle</mat-icon>
+    <div class="mobile-user-info" *ngIf="isAuthenticated" role="region" aria-label="User information">
+      <mat-icon class="user-avatar" aria-hidden="true">account_circle</mat-icon>
       <div class="user-details">
         <span class="user-name">{{ userName }}</span>
         <span class="user-email">{{ userEmail }}</span>
       </div>
     </div>
 
-    <mat-divider *ngIf="isAuthenticated"></mat-divider>
+    <mat-divider *ngIf="isAuthenticated" role="separator"></mat-divider>
 
     <!-- Navigation Links -->
-    <nav class="mobile-nav-links">
-      <a mat-button routerLink="/hotels" routerLinkActive="active-link" (click)="closeMobileMenu()">
-        <mat-icon>search</mat-icon>
+    <div class="mobile-nav-links">
+      <a mat-button routerLink="/hotels" routerLinkActive="active-link" (click)="closeMobileMenu()" aria-label="Browse hotels">
+        <mat-icon aria-hidden="true">search</mat-icon>
         <span>Hotels</span>
       </a>
 
-      <a mat-button routerLink="/my-bookings" routerLinkActive="active-link" *ngIf="isAuthenticated" (click)="closeMobileMenu()">
-        <mat-icon>event_note</mat-icon>
+      <a mat-button routerLink="/my-bookings" routerLinkActive="active-link" *ngIf="isAuthenticated" (click)="closeMobileMenu()" aria-label="View my bookings">
+        <mat-icon aria-hidden="true">event_note</mat-icon>
         <span>My Bookings</span>
       </a>
 
-      <a mat-button routerLink="/profile" routerLinkActive="active-link" *ngIf="isAuthenticated" (click)="closeMobileMenu()">
-        <mat-icon>person</mat-icon>
+      <a mat-button routerLink="/profile" routerLinkActive="active-link" *ngIf="isAuthenticated" (click)="closeMobileMenu()" aria-label="View my profile">
+        <mat-icon aria-hidden="true">person</mat-icon>
         <span>Profile</span>
       </a>
 
-      <mat-divider></mat-divider>
+      <mat-divider role="separator"></mat-divider>
 
       <ng-container *ngIf="!isAuthenticated">
-        <a mat-button routerLink="/login" (click)="closeMobileMenu()">
-          <mat-icon>login</mat-icon>
+        <a mat-button routerLink="/login" (click)="closeMobileMenu()" aria-label="Login to your account">
+          <mat-icon aria-hidden="true">login</mat-icon>
           <span>Login</span>
         </a>
-        <a mat-button routerLink="/register" (click)="closeMobileMenu()">
-          <mat-icon>person_add</mat-icon>
+        <a mat-button routerLink="/register" (click)="closeMobileMenu()" aria-label="Create new account">
+          <mat-icon aria-hidden="true">person_add</mat-icon>
           <span>Register</span>
         </a>
       </ng-container>
 
       <ng-container *ngIf="isAuthenticated">
-        <button mat-button (click)="logout()">
-          <mat-icon>logout</mat-icon>
+        <button mat-button (click)="logout()" aria-label="Logout from account">
+          <mat-icon aria-hidden="true">logout</mat-icon>
           <span>Logout</span>
         </button>
       </ng-container>
-    </nav>
+    </div>
   </div>
-</div>
+</nav>

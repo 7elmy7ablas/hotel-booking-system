@@ -93,6 +93,12 @@ try
 
     // Add repositories
     builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    
+    // Add application services
+    builder.Services.AddScoped<HotelBooking.Application.Services.BookingValidationService>();
+    
+    // Add security services
+    builder.Services.AddSingleton<HotelBooking.API.Services.LogSanitizationService>();
 
     // Add JWT Authentication
     // Priority: Environment Variables > appsettings.{Environment}.json > appsettings.json
@@ -150,10 +156,61 @@ try
         });
     });
 
-    // Add Rate Limiting
+    // Add Rate Limiting (Enhanced Security)
     builder.Services.AddMemoryCache();
-    builder.Services.Configure<AspNetCoreRateLimit.IpRateLimitOptions>(
-        builder.Configuration.GetSection("IpRateLimiting"));
+    builder.Services.Configure<AspNetCoreRateLimit.IpRateLimitOptions>(options =>
+    {
+        // General rate limits
+        options.GeneralRules = new List<AspNetCoreRateLimit.RateLimitRule>
+        {
+            // Default: 100 requests per minute
+            new AspNetCoreRateLimit.RateLimitRule
+            {
+                Endpoint = "*",
+                Period = "1m",
+                Limit = 100
+            },
+            // Auth endpoints: 5 requests per minute (prevent brute force)
+            new AspNetCoreRateLimit.RateLimitRule
+            {
+                Endpoint = "*/api/auth/login",
+                Period = "1m",
+                Limit = 5
+            },
+            new AspNetCoreRateLimit.RateLimitRule
+            {
+                Endpoint = "*/api/auth/register",
+                Period = "1m",
+                Limit = 3
+            },
+            // Booking endpoints: 10 requests per minute
+            new AspNetCoreRateLimit.RateLimitRule
+            {
+                Endpoint = "*/api/bookings",
+                Period = "1m",
+                Limit = 10
+            },
+            // Password change: 3 requests per hour
+            new AspNetCoreRateLimit.RateLimitRule
+            {
+                Endpoint = "*/api/auth/change-password",
+                Period = "1h",
+                Limit = 3
+            }
+        };
+        
+        options.QuotaExceededResponse = new AspNetCoreRateLimit.QuotaExceededResponse
+        {
+            Content = "{{ \"message\": \"Rate limit exceeded. Please try again later.\", \"statusCode\": 429 }}",
+            ContentType = "application/json",
+            StatusCode = 429
+        };
+        
+        options.RealIpHeader = "X-Real-IP";
+        options.HttpStatusCode = 429;
+        options.EnableEndpointRateLimiting = true;
+    });
+    
     builder.Services.Configure<AspNetCoreRateLimit.IpRateLimitPolicies>(
         builder.Configuration.GetSection("IpRateLimitPolicies"));
     builder.Services.AddSingleton<AspNetCoreRateLimit.IIpPolicyStore, AspNetCoreRateLimit.MemoryCacheIpPolicyStore>();
@@ -222,10 +279,12 @@ try
     }
 
     app.UseResponseCompression();
+    app.UseMiddleware<ResponseTransformerMiddleware>(); // Ensure consistent camelCase responses
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseMiddleware<GlobalExceptionHandler>();
-    app.UseIpRateLimiting();
+    app.UseIpRateLimiting(); // Rate limiting before authentication
+    app.UseMiddleware<JwtValidationMiddleware>(); // Enhanced JWT validation
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
     

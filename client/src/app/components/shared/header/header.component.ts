@@ -28,6 +28,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   userName = '';
   userEmail = '';
   isMobileMenuOpen = false;
+  isUserMenuOpen = false;
 
   constructor(
     private authService: AuthService,

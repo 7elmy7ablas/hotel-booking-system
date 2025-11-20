@@ -1,27 +1,22 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-not-found',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule
-  ],
+  imports: [CommonModule, RouterLink],
   templateUrl: './not-found.component.html',
-  styleUrl: './not-found.component.scss'
+  styleUrls: ['./not-found.component.scss']
 })
 export class NotFoundComponent {
-  constructor(private router: Router) {}
+  private router = inject(Router);
 
   goHome(): void {
-    this.router.navigate(['/hotels']);
+    this.router.navigate(['/']);
+  }
+
+  goBack(): void {
+    window.history.back();
   }
 }

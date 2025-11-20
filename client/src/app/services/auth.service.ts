@@ -5,6 +5,9 @@ import { tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { LoginRequest, RegisterRequest, AuthResponse } from '../models/user.model';
 import { environment } from '../../environments/environment';
+import { TokenService } from './token.service';
+import { ErrorHandlingService } from './error-handling.service';
+import { SanitizationService } from './sanitization.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +15,9 @@ import { environment } from '../../environments/environment';
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private tokenService = inject(TokenService);
+  private errorService = inject(ErrorHandlingService);
+  private sanitizationService = inject(SanitizationService);
   
   private apiUrl = `${environment.apiUrl}${environment.endpoints.auth}`;
   
@@ -20,44 +26,44 @@ export class AuthService {
   private userSignal = signal<any>(null);
 
   constructor() {
-    console.log('🎯 AuthService constructor called');
+    // SECURITY: Removed console.log statements to prevent sensitive data leakage
     
     // Safely load token and user from localStorage
     try {
-      const savedToken = localStorage.getItem('token');
+      const savedToken = this.tokenService.getToken(); // Use TokenService for validation
       const savedUser = localStorage.getItem('user');
       
-      console.log('📦 Saved token exists:', !!savedToken);
-      console.log('📦 Saved user exists:', !!savedUser);
-      
-      if (savedToken && savedToken !== 'null' && savedToken !== 'undefined') {
+      if (savedToken) {
         this.tokenSignal.set(savedToken);
-        console.log('✅ Token loaded from localStorage');
       }
       
       if (savedUser && savedUser !== 'null' && savedUser !== 'undefined') {
         try {
           const parsedUser = JSON.parse(savedUser);
           this.userSignal.set(parsedUser);
-          console.log('✅ User loaded from localStorage:', parsedUser.email);
         } catch (parseError) {
-          console.error('❌ Failed to parse saved user data:', parseError);
-          console.error('❌ Invalid user data:', savedUser);
-          // Clear invalid data
+          this.errorService.logError(parseError, 'AuthService - Parse User');
           localStorage.removeItem('user');
         }
       }
     } catch (error) {
-      console.error('❌ Error loading auth data from localStorage:', error);
-      // Clear potentially corrupted data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      this.errorService.logError(error, 'AuthService - Constructor');
+      this.tokenService.clearToken();
     }
+    
+    // Subscribe to token expiry events
+    this.tokenService.tokenExpired$.subscribe(expired => {
+      if (expired) {
+        // SECURITY: Token expired - clearing auth state (no logging in production)
+        this.tokenSignal.set(null);
+        this.userSignal.set(null);
+      }
+    });
   }
 
   // Getters for signals
   get token(): string | null {
-    return this.tokenSignal();
+    return this.tokenService.getToken(); // Always get fresh token with expiry check
   }
 
   get user(): any {
@@ -65,97 +71,74 @@ export class AuthService {
   }
 
   get isAuthenticated(): boolean {
-    return !!this.token;
+    return !!this.token && !this.tokenService.isTokenExpired();
   }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    console.log('🔐 ========== AuthService.login() CALLED ==========');
-    console.log('📧 Email:', credentials.email);
-    console.log('🌐 API URL:', `${this.apiUrl}/login`);
-    console.log('📦 Full credentials:', credentials);
+    // SECURITY: Removed all console.log statements to prevent credential/token leakage
     
     return this.http.post<any>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response: any) => {
-        console.log('✅ ========== AuthService HTTP Response ==========');
-        console.log('📦 Response:', response);
-        console.log('📦 Response type:', typeof response);
-        console.log('📦 Response keys:', response ? Object.keys(response) : 'null');
-        console.log('📦 response.token:', response?.token);
-        console.log('📦 response.Token:', response?.Token);
-        console.log('📦 response.user:', response?.user);
-        console.log('📦 response.User:', response?.User);
-        
-        // Check for both camelCase and PascalCase
-        const token = response?.token || response?.Token;
-        const user = response?.user || response?.User;
+        // ResponseTransformer ensures camelCase
+        const token = response?.token;
+        const user = response?.user;
+        const expiresAt = response?.expiresAt;
         
         if (token) {
-          console.log('💾 Storing token in localStorage');
-          console.log('📝 Token (first 30 chars):', token.substring(0, 30) + '...');
-          
-          // Store in localStorage
-          localStorage.setItem('token', token);
+          // Store token with expiry using TokenService
+          this.tokenService.setToken(token, expiresAt);
           localStorage.setItem('user', JSON.stringify(user));
           
           // Update signals
           this.tokenSignal.set(token);
           this.userSignal.set(user);
-          
-          console.log('✅ Token and user stored successfully');
-          if (user?.email) {
-            console.log('✅ User email:', user.email);
-          }
         } else {
-          console.error('❌ No token in response!');
-          console.error('❌ Full response:', JSON.stringify(response, null, 2));
+          this.errorService.logError(new Error('No token in login response'), 'AuthService - Login');
         }
       })
     );
   }
 
   register(userData: RegisterRequest): Observable<AuthResponse> {
-    console.log('📝 AuthService.register() called');
-    console.log('🌐 API URL:', `${this.apiUrl}/register`);
+    // SECURITY: Removed console.log statements to prevent user data/token leakage
     
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData).pipe(
+    // SECURITY: Sanitize user data before sending to API
+    const sanitizedData = this.sanitizationService.sanitizeUserData(userData);
+    
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, {
+      ...sanitizedData,
+      password: userData.password // Password not sanitized - validated on backend
+    }).pipe(
       tap(response => {
-        console.log('✅ Registration response received:', response);
-        
         if (response.token) {
-          // Store in localStorage
-          localStorage.setItem('token', response.token);
+          // Store token with expiry using TokenService
+          this.tokenService.setToken(response.token, response.expiresAt);
           localStorage.setItem('user', JSON.stringify(response.user));
           
           // Update signals
           this.tokenSignal.set(response.token);
           this.userSignal.set(response.user);
-          
-          console.log('✅ Registration successful, user logged in');
         }
       })
     );
   }
 
   logout(): void {
-    console.log('🚪 Logging out user');
+    // SECURITY: Removed console.log statements
     
-    // Clear localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('rememberMe');
+    // Clear token using TokenService
+    this.tokenService.clearToken();
     
     // Clear signals
     this.tokenSignal.set(null);
     this.userSignal.set(null);
-    
-    console.log('✅ User logged out, redirecting to login');
     
     // Navigate to login
     this.router.navigate(['/login']);
   }
 
   getToken(): string | null {
-    return this.token;
+    return this.tokenService.getToken();
   }
 
   getCurrentUser(): any {
@@ -164,7 +147,14 @@ export class AuthService {
 
   // Legacy method for compatibility
   isAuthenticatedLegacy(): boolean {
-    const token = localStorage.getItem('token');
-    return !!token && token !== 'null' && token !== 'undefined';
+    return this.isAuthenticated;
+  }
+  
+  /**
+   * Get time until token expires (in minutes)
+   */
+  getTokenExpiryMinutes(): number {
+    const ms = this.tokenService.getTimeUntilExpiry();
+    return Math.floor(ms / 60000);
   }
 }

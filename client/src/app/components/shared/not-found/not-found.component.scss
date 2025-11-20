@@ -1,118 +1,116 @@
+@import '../../../../styles/variables';
+@import '../../../../styles/mixins';
+
 .not-found-container {
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 200px);
-  padding: 20px;
-  background-color: #f5f5f5;
+  justify-content: center;
+  background: linear-gradient(135deg, $primary 0%, $secondary 100%);
+  padding: $spacing-8;
+  animation: fadeIn 0.5s ease-in-out;
 }
 
-.not-found-card {
-  max-width: 600px;
-  width: 100%;
-  padding: 40px;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .not-found-content {
   text-align: center;
+  max-width: 600px;
+  animation: slideUp 0.6s ease-out;
+}
 
-  .error-icon {
-    font-size: 120px;
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.error-illustration {
+  position: relative;
+  margin-bottom: $spacing-8;
+
+  svg {
     width: 120px;
     height: 120px;
-    color: #ff6b6b;
-    margin-bottom: 20px;
+    color: rgba(255, 255, 255, 0.3);
+    margin: 0 auto;
   }
 
-  h1 {
-    margin: 0 0 16px 0;
-    font-size: 72px;
-    font-weight: 700;
-    color: #667eea;
-  }
+  .error-code {
+    font-size: 120px;
+    font-weight: $font-weight-bold;
+    color: $white;
+    margin: 0;
+    line-height: 1;
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
-  h2 {
-    margin: 0 0 16px 0;
-    font-size: 32px;
-    font-weight: 600;
-    color: #333;
-  }
-
-  p {
-    margin: 0 0 32px 0;
-    font-size: 16px;
-    color: #666;
-    line-height: 1.6;
-  }
-
-  .action-buttons {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-    flex-wrap: wrap;
-
-    button {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 150px;
-    }
-  }
-}
-
-// Tablet breakpoint
-@media (max-width: 960px) {
-  .not-found-card {
-    padding: 32px;
-  }
-
-  .not-found-content {
-    h1 {
-      font-size: 64px;
-    }
-
-    h2 {
-      font-size: 28px;
-    }
-
-    .error-icon {
-      font-size: 100px;
-      width: 100px;
-      height: 100px;
-    }
-  }
-}
-
-// Mobile breakpoint
-@media (max-width: 600px) {
-  .not-found-card {
-    padding: 24px;
-  }
-
-  .not-found-content {
-    h1 {
-      font-size: 48px;
-    }
-
-    h2 {
-      font-size: 20px;
-    }
-
-    p {
-      font-size: 14px;
-    }
-
-    .error-icon {
+    @include mobile {
       font-size: 80px;
-      width: 80px;
-      height: 80px;
+    }
+  }
+}
+
+h2 {
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-bold;
+  color: $white;
+  margin-bottom: $spacing-4;
+
+  @include mobile {
+    font-size: $font-size-3xl;
+  }
+}
+
+p {
+  font-size: $font-size-lg;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: $spacing-8;
+  line-height: $line-height-relaxed;
+}
+
+.action-buttons {
+  display: flex;
+  gap: $spacing-4;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-2;
+    background: $white;
+    color: $primary;
+    border-color: $white;
+
+    svg {
+      width: 20px;
+      height: 20px;
     }
 
-    .action-buttons {
-      flex-direction: column;
+    &:hover {
+      background: rgba(255, 255, 255, 0.9);
+      transform: translateY(-2px);
+    }
 
-      button {
-        width: 100%;
+    &.btn-outline {
+      background: transparent;
+      color: $white;
+      border-color: $white;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
       }
     }
   }

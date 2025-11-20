@@ -9,6 +9,7 @@ using HotelBooking.API.DTOs;
 using HotelBooking.Domain.Entities;
 using HotelBooking.Infrastructure.Data;
 using HotelBooking.API.Validators;
+using HotelBooking.API.Services;
 
 namespace HotelBooking.API.Controllers;
 
@@ -22,15 +23,18 @@ public class AuthController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
+    private readonly LogSanitizationService _sanitizationService;
 
     public AuthController(
         ApplicationDbContext context,
         IConfiguration configuration,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        LogSanitizationService sanitizationService)
     {
         _context = context;
         _configuration = configuration;
         _logger = logger;
+        _sanitizationService = sanitizationService;
     }
 
     /// <summary>
@@ -53,7 +57,11 @@ public class AuthController : ControllerBase
             // Validate password strength
             if (!Validators.PasswordValidator.IsValid(registerDto.Password, out var passwordError))
             {
-                _logger.LogWarning("Registration attempt with weak password: {Email}", registerDto.Email);
+                // SECURITY: Never log passwords or password details
+                var safeContext = _sanitizationService.CreateSafeLogContext(
+                    ("Email", registerDto.Email),
+                    ("Reason", "Weak password"));
+                _logger.LogWarning("Registration attempt failed: {@Context}", safeContext);
                 return BadRequest(new { message = passwordError });
             }
 
@@ -63,7 +71,9 @@ public class AuthController : ControllerBase
 
             if (existingUser != null)
             {
-                _logger.LogWarning("Registration attempt with existing email: {Email}", registerDto.Email);
+                // SECURITY: Mask email in logs
+                var maskedEmail = _sanitizationService.SanitizeLogMessage(registerDto.Email);
+                _logger.LogWarning("Registration attempt with existing email: {Email}", maskedEmail);
                 return BadRequest(new { message = "Email already exists" });
             }
 
@@ -84,7 +94,9 @@ public class AuthController : ControllerBase
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("User registered successfully: {Email}", user.Email);
+            // SECURITY: Mask email in logs
+            var maskedEmail = _sanitizationService.SanitizeLogMessage(user.Email);
+            _logger.LogInformation("User registered successfully: {Email}", maskedEmail);
 
             // Map to UserDto
             var userDto = new UserDto
@@ -131,14 +143,18 @@ public class AuthController : ControllerBase
 
             if (user == null)
             {
-                _logger.LogWarning("Login attempt with non-existent email: {Email}", loginDto.Email);
+                // SECURITY: Mask email in logs, use generic message
+                var maskedEmail = _sanitizationService.SanitizeLogMessage(loginDto.Email);
+                _logger.LogWarning("Login attempt with non-existent email: {Email}", maskedEmail);
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
             // Verify password
             if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
             {
-                _logger.LogWarning("Failed login attempt for email: {Email}", loginDto.Email);
+                // SECURITY: Never log password attempts, mask email
+                var maskedEmail = _sanitizationService.SanitizeLogMessage(loginDto.Email);
+                _logger.LogWarning("Failed login attempt for email: {Email}", maskedEmail);
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
@@ -147,7 +163,9 @@ public class AuthController : ControllerBase
             var expirationHours = _configuration.GetValue<int>("Jwt:ExpirationInHours", 24);
             var expiresAt = DateTime.UtcNow.AddHours(expirationHours);
 
-            _logger.LogInformation("User logged in successfully: {Email}", user.Email);
+            // SECURITY: Mask email in logs, never log tokens
+            var maskedEmail = _sanitizationService.SanitizeLogMessage(user.Email);
+            _logger.LogInformation("User logged in successfully: {Email}", maskedEmail);
 
             // Map to UserDto
             var userDto = new UserDto
@@ -203,21 +221,27 @@ public class AuthController : ControllerBase
 
             if (user == null)
             {
-                _logger.LogWarning("Password change attempt for non-existent email: {Email}", changePasswordDto.Email);
+                // SECURITY: Mask email in logs
+                var maskedEmail = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
+                _logger.LogWarning("Password change attempt for non-existent email: {Email}", maskedEmail);
                 return NotFound(new { message = "User not found" });
             }
 
             // Verify old password
             if (!BCrypt.Net.BCrypt.Verify(changePasswordDto.OldPassword, user.PasswordHash))
             {
-                _logger.LogWarning("Failed password change attempt for email: {Email} - Invalid old password", changePasswordDto.Email);
+                // SECURITY: Never log passwords, mask email
+                var maskedEmail = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
+                _logger.LogWarning("Failed password change attempt for email: {Email} - Invalid old password", maskedEmail);
                 return Unauthorized(new { message = "Invalid old password" });
             }
 
             // Validate new password strength
             if (!Validators.PasswordValidator.IsValid(changePasswordDto.NewPassword, out var passwordError))
             {
-                _logger.LogWarning("Password change attempt with weak password: {Email}", changePasswordDto.Email);
+                // SECURITY: Never log passwords, mask email
+                var maskedEmail = _sanitizationService.SanitizeLogMessage(changePasswordDto.Email);
+                _logger.LogWarning("Password change attempt with weak password: {Email}", maskedEmail);
                 return BadRequest(new { message = passwordError });
             }
 
@@ -227,7 +251,9 @@ public class AuthController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Password changed successfully for user: {Email}", user.Email);
+            // SECURITY: Mask email in logs
+            var maskedEmailSuccess = _sanitizationService.SanitizeLogMessage(user.Email);
+            _logger.LogInformation("Password changed successfully for user: {Email}", maskedEmailSuccess);
 
             return Ok(new { message = "Password changed successfully" });
         }

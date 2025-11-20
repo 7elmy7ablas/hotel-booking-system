@@ -1,132 +1,81 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
+import { Router, RouterLink } from '@angular/router';
 import { BookingService } from '../../services/booking.service';
 import { Booking } from '../../models/booking.model';
 
 @Component({
   selector: 'app-my-bookings',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatChipsModule
-  ],
+  imports: [CommonModule, RouterLink],
   templateUrl: './my-bookings.component.html',
-  styles: [`
-    .my-bookings-container {
-      padding: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    h1 {
-      margin-bottom: 24px;
-      color: #333;
-    }
-
-    .loading {
-      display: flex;
-      justify-content: center;
-      padding: 48px;
-    }
-
-    .no-bookings {
-      text-align: center;
-      padding: 48px;
-    }
-
-    .no-bookings h2 {
-      color: #666;
-      margin-bottom: 16px;
-    }
-
-    .bookings-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 24px;
-    }
-
-    .booking-card {
-      position: relative;
-    }
-
-    .booking-info {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .label {
-      font-weight: 500;
-      color: #666;
-    }
-
-    .value {
-      color: #333;
-    }
-
-    .price {
-      font-size: 24px;
-      font-weight: bold;
-      color: #4caf50;
-    }
-
-    .status-chip {
-      margin-top: 8px;
-    }
-
-    .status-pending {
-      background-color: #ff9800;
-      color: white;
-    }
-
-    .status-confirmed {
-      background-color: #4caf50;
-      color: white;
-    }
-
-    .status-cancelled {
-      background-color: #f44336;
-      color: white;
-    }
-  `]
+  styleUrls: ['./my-bookings.component.scss']
 })
 export class MyBookingsComponent implements OnInit {
   private bookingService = inject(BookingService);
   private router = inject(Router);
 
-  bookings = signal<Booking[]>([]);
-  loading = signal(false);
+  bookings: Booking[] = [];
+  filteredBookings: Booking[] = [];
+  isLoading = false;
+  errorMessage = '';
+  selectedFilter = 'All';
+  cancellingBookingId: number | null = null;
 
   ngOnInit(): void {
     this.loadBookings();
   }
 
   loadBookings(): void {
-    this.loading.set(true);
+    this.isLoading = true;
+    this.errorMessage = '';
+    
     this.bookingService.getMyBookings().subscribe({
       next: (bookings) => {
-        this.bookings.set(bookings);
-        this.loading.set(false);
+        this.bookings = bookings;
+        this.filteredBookings = bookings;
+        this.isLoading = false;
       },
       error: (error) => {
         console.error('Failed to load bookings:', error);
-        this.loading.set(false);
+        this.errorMessage = 'Failed to load bookings. Please try again.';
+        this.isLoading = false;
       }
     });
+  }
+
+  filterBookings(status: string): void {
+    this.selectedFilter = status;
+    
+    if (status === 'All') {
+      this.filteredBookings = this.bookings;
+    } else {
+      this.filteredBookings = this.bookings.filter(b => b.status === status);
+    }
+  }
+
+  cancelBooking(bookingId: number): void {
+    if (!confirm('Are you sure you want to cancel this booking?')) {
+      return;
+    }
+
+    this.cancellingBookingId = bookingId;
+    
+    this.bookingService.cancelBooking(bookingId).subscribe({
+      next: () => {
+        this.cancellingBookingId = null;
+        this.loadBookings();
+      },
+      error: (error) => {
+        console.error('Failed to cancel booking:', error);
+        this.errorMessage = 'Failed to cancel booking. Please try again.';
+        this.cancellingBookingId = null;
+      }
+    });
+  }
+
+  viewBookingDetails(bookingId: number): void {
+    this.router.navigate(['/bookings', bookingId]);
   }
 
   navigateToHotels(): void {
@@ -134,10 +83,20 @@ export class MyBookingsComponent implements OnInit {
   }
 
   getStatusClass(status: string): string {
-    return `status-${status.toLowerCase()}`;
+    const statusMap: { [key: string]: string } = {
+      'Pending': 'badge-warning',
+      'Confirmed': 'badge-success',
+      'Cancelled': 'badge-error',
+      'Completed': 'badge-primary'
+    };
+    return statusMap[status] || 'badge-primary';
   }
 
-  formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString();
+  formatDate(date: Date | string): string {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   }
 }

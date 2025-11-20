@@ -1,22 +1,35 @@
 <!-- 
-  Root Application Layout
+  Root Application Layout - WCAG 2.1 AA Compliant
   
   Structure:
-  1. app-container: Main flex container for sticky footer
-  2. app-header: Navigation and user menu (sticky)
-  3. main-content: Router outlet for page content (flex-grow)
-  4. app-footer: Footer with links and copyright
+  1. Skip links for keyboard navigation
+  2. app-container: Main flex container for sticky footer
+  3. app-header: Navigation and user menu (sticky)
+  4. main-content: Router outlet for page content (flex-grow)
+  5. app-footer: Footer with links and copyright
+  6. ARIA live regions for announcements
 -->
+
+<!-- Skip Links for Keyboard Navigation -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<a href="#navigation" class="skip-link">Skip to navigation</a>
 
 <div class="app-container">
   <!-- Header: Navigation and user menu -->
-  <app-header></app-header>
+  <app-header id="navigation"></app-header>
 
   <!-- Main Content: Router outlet for all pages -->
-  <main class="main-content" role="main">
+  <main id="main-content" class="main-content" role="main" tabindex="-1">
     <router-outlet />
   </main>
 
   <!-- Footer: Links and copyright -->
   <app-footer></app-footer>
+
+  <!-- Toast Notifications -->
+  <app-toast role="status" aria-live="polite"></app-toast>
 </div>
+
+<!-- ARIA Live Regions for Screen Reader Announcements -->
+<div id="aria-live-polite" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+<div id="aria-live-assertive" aria-live="assertive" aria-atomic="true" class="sr-only"></div>

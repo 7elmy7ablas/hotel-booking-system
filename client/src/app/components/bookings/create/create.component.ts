@@ -16,6 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../services/auth.service';
 import { BookingService } from '../../../services/booking.service';
 import { HotelService } from '../../../services/hotel.service';
+import { ErrorHandlingService } from '../../../services/error-handling.service';
 
 @Component({
   selector: 'app-create',
@@ -45,11 +46,11 @@ export class CreateComponent implements OnInit {
 
   isAuthenticated = false;
   isBooking = false;
-  bookingId: number | null = null;
+  bookingId: string | null = null;
 
   // Hotel and Room Info
-  hotelId: number | null = null;
-  roomId: number | null = null;
+  hotelId: string | null = null;
+  roomId: string | null = null;
   hotelName = '';
   roomType = '';
   hotelImageUrl = '';
@@ -71,7 +72,8 @@ export class CreateComponent implements OnInit {
     private authService: AuthService,
     private bookingService: BookingService,
     private hotelService: HotelService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private errorService: ErrorHandlingService
   ) {
     this.bookingDetailsForm = this.fb.group({
       checkInDate: [null, Validators.required],
@@ -97,8 +99,8 @@ export class CreateComponent implements OnInit {
 
     // Get query params
     this.route.queryParams.subscribe(params => {
-      this.hotelId = params['hotelId'] ? +params['hotelId'] : null;
-      this.roomId = params['roomId'] ? +params['roomId'] : null;
+      this.hotelId = params['hotelId'] || null;
+      this.roomId = params['roomId'] || null;
       this.hotelName = params['hotelName'] || 'Hotel Name';
       this.roomType = params['roomType'] || 'Room Type';
       this.pricePerNight = params['pricePerNight'] ? +params['pricePerNight'] : 0;
@@ -216,14 +218,11 @@ export class CreateComponent implements OnInit {
         },
         error: (error) => {
           this.isBooking = false;
-          this.snackBar.open(
-            error.error?.message || 'Booking failed. Please try again.',
-            'Close',
-            {
-              duration: 5000,
-              panelClass: ['error-snackbar']
-            }
-          );
+          const errorMessage = this.errorService.getBookingErrorMessage(error);
+          this.snackBar.open(errorMessage, 'Close', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
         }
       });
     }

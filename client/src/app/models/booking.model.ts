@@ -1,8 +1,8 @@
 export interface Booking {
-  id: number;
-  userId: number;
-  roomId: number;
-  hotelId: number;
+  id: string;
+  userId: string;
+  roomId: string;
+  hotelId: string;
   checkInDate: Date;
   checkOutDate: Date;
   totalPrice: number;
@@ -24,7 +24,7 @@ export enum BookingStatus {
 }
 
 export interface CreateBookingRequest {
-  roomId: number;
+  roomId: string;
   checkInDate: Date;
   checkOutDate: Date;
   guestName: string;

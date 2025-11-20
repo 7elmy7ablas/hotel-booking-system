@@ -1,144 +1,143 @@
-<div class="search-container">
-  <!-- Search Header -->
-  <div class="search-header">
-    <h1>Find Your Perfect Stay</h1>
-    <p>Search from thousands of hotels worldwide</p>
-  </div>
+<div class="hotels-container">
+  <!-- Search/Filter Section -->
+  <section class="search-section">
+    <div class="container">
+      <h1>Discover Your Perfect Stay</h1>
+      <p class="subtitle">Browse through our collection of premium hotels</p>
 
-  <!-- Search Form -->
-  <mat-card class="search-form-card">
-    <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
-      <div class="form-row">
-        <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Location</mat-label>
-          <input 
-            matInput 
-            formControlName="city" 
-            placeholder="Enter city or destination">
-          <mat-icon matPrefix>location_on</mat-icon>
-        </mat-form-field>
+      <div class="search-card">
+        <form [formGroup]="searchForm" class="search-filters">
+          <div class="filter-row">
+            <div class="form-group">
+              <input 
+                type="text" 
+                formControlName="search"
+                placeholder="Search hotels, cities, locations..."
+                class="form-input"
+              />
+            </div>
 
-        <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Check-in Date</mat-label>
-          <input 
-            matInput 
-            [matDatepicker]="checkInPicker" 
-            formControlName="checkInDate"
-            [min]="minDate">
-          <mat-icon matPrefix>event</mat-icon>
-          <mat-datepicker-toggle matSuffix [for]="checkInPicker"></mat-datepicker-toggle>
-          <mat-datepicker #checkInPicker></mat-datepicker>
-        </mat-form-field>
+            <div class="form-group">
+              <input 
+                type="text" 
+                formControlName="city"
+                placeholder="City"
+                class="form-input"
+              />
+            </div>
 
-        <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Check-out Date</mat-label>
-          <input 
-            matInput 
-            [matDatepicker]="checkOutPicker" 
-            formControlName="checkOutDate"
-            [min]="searchForm.value.checkInDate || minDate">
-          <mat-icon matPrefix>event</mat-icon>
-          <mat-datepicker-toggle matSuffix [for]="checkOutPicker"></mat-datepicker-toggle>
-          <mat-datepicker #checkOutPicker></mat-datepicker>
-        </mat-form-field>
+            <div class="form-group">
+              <input 
+                type="number" 
+                formControlName="guests"
+                placeholder="Guests"
+                min="1"
+                class="form-input"
+              />
+            </div>
 
-        <mat-form-field appearance="outline" class="form-field guests-field">
-          <mat-label>Guests</mat-label>
-          <input 
-            matInput 
-            type="number" 
-            formControlName="guests" 
-            min="1" 
-            max="10">
-          <mat-icon matPrefix>person</mat-icon>
-        </mat-form-field>
-
-        <button 
-          mat-raised-button 
-          color="primary" 
-          type="submit" 
-          class="search-button">
-          <mat-icon>search</mat-icon>
-          Search
-        </button>
-
-        <button 
-          mat-stroked-button 
-          type="button" 
-          class="clear-button"
-          (click)="onClearSearch()">
-          <mat-icon>clear</mat-icon>
-          Clear
-        </button>
+            <button type="button" (click)="onClearFilters()" class="btn btn-outline">
+              Clear Filters
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
-  </mat-card>
+    </div>
+  </section>
 
-  <!-- Loading Spinner -->
-  <div class="loading-container" *ngIf="isLoading">
-    <mat-spinner diameter="60"></mat-spinner>
-    <p>Searching for hotels...</p>
-  </div>
-
-  <!-- Hotels Grid -->
-  <div class="hotels-grid" *ngIf="!isLoading && hotels.length > 0">
-    <mat-card 
-      class="hotel-card" 
-      *ngFor="let hotel of hotels"
-      (click)="viewHotelDetails(hotel)">
-      <div class="hotel-image">
-        <img 
-          [src]="hotel.imageUrl || defaultHotelImage" 
-          [alt]="hotel.name"
-          (error)="onImageError($event)"
-          loading="lazy">
-        <div class="rating-badge">
-          <mat-icon>star</mat-icon>
-          <span>{{ hotel.rating }}</span>
+  <!-- Hotels Grid Section -->
+  <section class="hotels-section">
+    <div class="container">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="hotels-grid">
+        <div *ngFor="let i of [1,2,3,4,5,6,7,8,9]" class="hotel-card-skeleton">
+          <div class="skeleton skeleton-image"></div>
+          <div class="skeleton-content">
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text" style="width: 70%;"></div>
+            <div class="skeleton skeleton-text" style="width: 50%;"></div>
+          </div>
         </div>
       </div>
 
-      <mat-card-content>
-        <h3 class="hotel-name">{{ hotel.name }}</h3>
-        
-        <div class="hotel-location">
-          <mat-icon>location_on</mat-icon>
-          <span>{{ hotel.city }}, {{ hotel.country }}</span>
+      <!-- Hotels Grid -->
+      <div *ngIf="!isLoading && filteredHotels.length > 0" class="hotels-grid">
+        <div 
+          *ngFor="let hotel of filteredHotels" 
+          class="hotel-card"
+          (click)="viewHotelDetails(hotel)"
+        >
+          <div class="hotel-image-wrapper">
+            <img 
+              [src]="hotel.imageUrl || defaultHotelImage" 
+              [alt]="hotel.name"
+              (error)="onImageError($event)"
+              class="hotel-image"
+            />
+            <div class="image-overlay"></div>
+            <div class="hotel-rating-badge">
+              <span class="rating-icon">⭐</span>
+              <span class="rating-value">{{ hotel.rating || 4.5 }}</span>
+            </div>
+            <div class="price-badge">
+              <span class="price-label">From</span>
+              <span class="price-value">$99</span>
+              <span class="price-period">/night</span>
+            </div>
+          </div>
+
+          <div class="hotel-content">
+            <h3 class="hotel-name">{{ hotel.name }}</h3>
+            <p class="hotel-location">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {{ hotel.city }}, {{ hotel.country }}
+            </p>
+
+            <div class="hotel-amenities">
+              <span *ngFor="let amenity of hotel.amenities?.slice(0, 3)" class="amenity-tag">
+                {{ amenity }}
+              </span>
+            </div>
+
+            <div class="hotel-actions">
+              <button class="btn btn-outline btn-sm" (click)="viewHotelDetails(hotel)">
+                View Details
+              </button>
+              <button 
+                *ngIf="isAuthenticated" 
+                class="btn btn-primary btn-sm"
+                (click)="bookHotel(hotel, $event)"
+              >
+                Book Now
+              </button>
+              <button 
+                *ngIf="!isAuthenticated" 
+                class="btn btn-ghost btn-sm"
+                (click)="bookHotel(hotel, $event)"
+              >
+                Login to Book
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <p class="hotel-description">{{ hotel.description }}</p>
-
-        <div class="hotel-rating">
-          <mat-icon *ngFor="let star of getRatingStars(hotel.rating)">
-            {{ star }}
-          </mat-icon>
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && filteredHotels.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
         </div>
-
-        <div class="hotel-amenities" *ngIf="hotel.amenities && hotel.amenities.length > 0">
-          <mat-chip-set>
-            <mat-chip *ngFor="let amenity of hotel.amenities.slice(0, 3)">
-              {{ amenity }}
-            </mat-chip>
-          </mat-chip-set>
-        </div>
-      </mat-card-content>
-
-      <mat-card-actions>
-        <button mat-button color="primary">
-          View Details
-          <mat-icon>arrow_forward</mat-icon>
+        <h3>No Hotels Found</h3>
+        <p>We couldn't find any hotels matching your criteria. Try adjusting your filters.</p>
+        <button (click)="onClearFilters()" class="btn btn-primary">
+          Clear Filters
         </button>
-      </mat-card-actions>
-    </mat-card>
-  </div>
-
-  <!-- Empty State -->
-  <div class="empty-state" *ngIf="!isLoading && hasSearched && hotels.length === 0">
-    <mat-icon>hotel</mat-icon>
-    <h2>No Hotels Found</h2>
-    <p>We couldn't find any hotels matching your search criteria.</p>
-    <button mat-raised-button color="primary" (click)="onClearSearch()">
-      Clear Search
-    </button>
-  </div>
+      </div>
+    </div>
+  </section>
 </div>

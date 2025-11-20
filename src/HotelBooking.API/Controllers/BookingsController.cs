@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using HotelBooking.Infrastructure.Data;
 using HotelBooking.Domain.Entities;
+using HotelBooking.Application.Services;
 
 namespace HotelBooking.API.Controllers;
 
@@ -13,11 +14,16 @@ public class BookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<BookingsController> _logger;
+    private readonly BookingValidationService _validationService;
 
-    public BookingsController(ApplicationDbContext context, ILogger<BookingsController> logger)
+    public BookingsController(
+        ApplicationDbContext context, 
+        ILogger<BookingsController> logger,
+        BookingValidationService validationService)
     {
         _context = context;
         _logger = logger;
+        _validationService = validationService;
     }
 
     // GET: api/bookings
@@ -108,7 +114,7 @@ public class BookingsController : ControllerBase
             if (!userExists)
             {
                 _logger.LogWarning("Booking creation failed: User with ID {UserId} not found", booking.UserId);
-                return NotFound(new { Message = $"User with ID {booking.UserId} not found" });
+                return NotFound(new { message = "User not found. Please ensure you are logged in." });
             }
 
             // Validate RoomId exists and get room details
@@ -119,31 +125,19 @@ public class BookingsController : ControllerBase
             if (room is null)
             {
                 _logger.LogWarning("Booking creation failed: Room with ID {RoomId} not found", booking.RoomId);
-                return NotFound(new { Message = $"Room with ID {booking.RoomId} not found" });
+                return NotFound(new { message = "The selected room is no longer available. Please choose another room." });
             }
 
-            // Validate CheckOut > CheckIn
-            if (booking.CheckOut <= booking.CheckIn)
-            {
-                _logger.LogWarning("Booking creation failed: CheckOut date must be after CheckIn date");
-                return BadRequest(new { Message = "CheckOut date must be after CheckIn date" });
-            }
+            // Validate booking using BookingValidationService
+            var validationResult = await _validationService.ValidateNoOverlapAsync(
+                booking.RoomId,
+                booking.CheckIn,
+                booking.CheckOut);
 
-            // Check for overlapping bookings (CRITICAL LOGIC)
-            var overlappingBookings = await _context.Bookings
-                .Where(b => b.RoomId == booking.RoomId
-                    && !b.IsDeleted
-                    && b.Status != "Cancelled"
-                    && b.CheckIn < booking.CheckOut
-                    && b.CheckOut > booking.CheckIn)
-                .ToListAsync();
-
-            if (overlappingBookings.Any())
+            if (!validationResult.IsValid)
             {
-                var existingBooking = overlappingBookings.First();
-                _logger.LogWarning("Booking creation failed: Room is already booked from {CheckIn} to {CheckOut}",
-                    existingBooking.CheckIn, existingBooking.CheckOut);
-                return BadRequest(new { Message = $"Room is already booked from {existingBooking.CheckIn:yyyy-MM-dd} to {existingBooking.CheckOut:yyyy-MM-dd}" });
+                _logger.LogWarning("Booking validation failed: {ErrorMessage}", validationResult.ErrorMessage);
+                return BadRequest(new { message = validationResult.ErrorMessage });
             }
 
             // Auto-calculate TotalPrice
@@ -191,7 +185,7 @@ public class BookingsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating booking");
-            return Problem("An error occurred while creating the booking");
+            return StatusCode(500, new { message = "We encountered an error while processing your booking. Please try again or contact support if the issue persists." });
         }
     }
 
@@ -218,7 +212,7 @@ public class BookingsController : ControllerBase
             if (existingBooking is null || existingBooking.IsDeleted)
             {
                 _logger.LogWarning("Booking with ID {BookingId} not found", id);
-                return NotFound(new { Message = $"Booking with ID {id} not found" });
+                return NotFound(new { message = "Booking not found. It may have been cancelled or does not exist." });
             }
 
             bool needsRecalculation = false;
@@ -235,39 +229,27 @@ public class BookingsController : ControllerBase
                 needsRecalculation = true;
             }
 
-            // Validate CheckOut > CheckIn
-            if (updatedBooking.CheckOut <= updatedBooking.CheckIn)
-            {
-                _logger.LogWarning("Booking update failed: CheckOut date must be after CheckIn date");
-                return BadRequest(new { Message = "CheckOut date must be after CheckIn date" });
-            }
-
             // Check if dates changed
             if (existingBooking.CheckIn != updatedBooking.CheckIn || existingBooking.CheckOut != updatedBooking.CheckOut)
             {
                 needsRecalculation = true;
             }
 
-            // Check for overlapping bookings (excluding current booking)
+            // Validate booking using BookingValidationService (excluding current booking)
             if (existingBooking.RoomId != updatedBooking.RoomId ||
                 existingBooking.CheckIn != updatedBooking.CheckIn ||
                 existingBooking.CheckOut != updatedBooking.CheckOut)
             {
-                var overlappingBookings = await _context.Bookings
-                    .Where(b => b.RoomId == updatedBooking.RoomId
-                        && b.Id != id
-                        && !b.IsDeleted
-                        && b.Status != "Cancelled"
-                        && b.CheckIn < updatedBooking.CheckOut
-                        && b.CheckOut > updatedBooking.CheckIn)
-                    .ToListAsync();
+                var validationResult = await _validationService.ValidateNoOverlapAsync(
+                    updatedBooking.RoomId,
+                    updatedBooking.CheckIn,
+                    updatedBooking.CheckOut,
+                    id); // Exclude current booking from overlap check
 
-                if (overlappingBookings.Any())
+                if (!validationResult.IsValid)
                 {
-                    var existingOverlap = overlappingBookings.First();
-                    _logger.LogWarning("Booking update failed: Room is already booked from {CheckIn} to {CheckOut}",
-                        existingOverlap.CheckIn, existingOverlap.CheckOut);
-                    return BadRequest(new { Message = $"Room is already booked from {existingOverlap.CheckIn:yyyy-MM-dd} to {existingOverlap.CheckOut:yyyy-MM-dd}" });
+                    _logger.LogWarning("Booking update validation failed: {ErrorMessage}", validationResult.ErrorMessage);
+                    return BadRequest(new { message = validationResult.ErrorMessage });
                 }
             }
 

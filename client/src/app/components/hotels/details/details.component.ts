@@ -1,23 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HotelService } from '../../../services/hotel.service';
 import { SelectedHotelService } from '../../../services/selected-hotel.service';
 import { BookingService } from '../../../services/booking.service';
+import { AuthService } from '../../../services/auth.service';
 import { Hotel, Room } from '../../../models/hotel.model';
 
 @Component({
@@ -26,64 +14,38 @@ import { Hotel, Room } from '../../../models/hotel.model';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatTabsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatSelectModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule
+    RouterLink
   ],
   templateUrl: './details.component.html',
-  styleUrl: './details.component.scss'
+  styleUrls: ['./details.component.scss']
 })
 export class DetailsComponent implements OnInit {
+  private router = inject(Router);
+  private fb = inject(FormBuilder);
+  private hotelService = inject(HotelService);
+  private selectedHotelService = inject(SelectedHotelService);
+  private bookingService = inject(BookingService);
+  private authService = inject(AuthService);
+
   hotel: Hotel | null = null;
   rooms: Room[] = [];
-  availableRooms: Room[] = [];
   bookingForm: FormGroup;
   isLoading = true;
   isBooking = false;
-  errorMessage = '';
+  isAuthenticated = false;
+  selectedImageIndex = 0;
   selectedRoom: Room | null = null;
   totalPrice = 0;
   numberOfNights = 0;
   minDate = new Date();
+  showBookingForm = false;
+  bookingMessage = '';
+  bookingError = '';
 
   hotelImages: string[] = [];
-  
-  // Default hotel image for fallback
-  defaultHotelImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=500&fit=crop&q=80';
+  defaultHotelImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200';
 
-  amenityIcons: { [key: string]: string } = {
-    'WiFi': 'wifi',
-    'Pool': 'pool',
-    'Parking': 'local_parking',
-    'Restaurant': 'restaurant',
-    'Gym': 'fitness_center',
-    'Spa': 'spa',
-    'Bar': 'local_bar',
-    'Room Service': 'room_service',
-    'Air Conditioning': 'ac_unit',
-    'Pet Friendly': 'pets',
-    'Breakfast': 'free_breakfast',
-    'Laundry': 'local_laundry_service'
-  };
-
-  constructor(
-    private router: Router,
-    private fb: FormBuilder,
-    private hotelService: HotelService,
-    private selectedHotelService: SelectedHotelService,
-    private bookingService: BookingService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.bookingForm = this.fb.group({
       checkInDate: [null, Validators.required],
       checkOutDate: [null, Validators.required],
@@ -97,36 +59,31 @@ export class DetailsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Get hotel from service (loaded from sessionStorage if page refreshed)
+    this.isAuthenticated = this.authService.isAuthenticated;
+
     const selectedHotel = this.selectedHotelService.getSelectedHotel();
     
     if (!selectedHotel) {
-      console.error('❌ No hotel selected, redirecting to /hotels');
       this.router.navigate(['/hotels']);
       return;
     }
     
-    console.log('✅ Loading hotel from service:', selectedHotel.name);
     this.hotel = selectedHotel;
     this.hotelImages = this.generateHotelImages(selectedHotel);
     this.isLoading = false;
     
-    // Load rooms for this hotel
     this.loadRooms(selectedHotel.id);
 
-    // Watch for date changes to calculate price
     this.bookingForm.get('checkInDate')?.valueChanges.subscribe(() => {
       this.calculateTotalPrice();
-      this.loadAvailableRooms();
     });
 
     this.bookingForm.get('checkOutDate')?.valueChanges.subscribe(() => {
       this.calculateTotalPrice();
-      this.loadAvailableRooms();
     });
 
     this.bookingForm.get('roomId')?.valueChanges.subscribe((roomId) => {
-      this.selectedRoom = this.availableRooms.find(r => r.id === roomId) || null;
+      this.selectedRoom = this.rooms.find(r => r.id === roomId) || null;
       this.calculateTotalPrice();
     });
   }
@@ -137,29 +94,11 @@ export class DetailsComponent implements OnInit {
     this.hotelService.getRoomsByHotelId(hotelId).subscribe({
       next: (rooms) => {
         this.rooms = rooms;
-        this.availableRooms = rooms;
       },
       error: (error) => {
         console.error('Error loading rooms:', error);
       }
     });
-  }
-
-  loadAvailableRooms(): void {
-    const checkIn = this.bookingForm.get('checkInDate')?.value;
-    const checkOut = this.bookingForm.get('checkOutDate')?.value;
-
-    if (checkIn && checkOut && this.hotel) {
-      this.hotelService.getAvailableRooms(this.hotel.id, checkIn, checkOut).subscribe({
-        next: (rooms) => {
-          this.availableRooms = rooms;
-        },
-        error: (error) => {
-          console.error('Error loading available rooms:', error);
-          this.availableRooms = this.rooms;
-        }
-      });
-    }
   }
 
   generateHotelImages(hotel: Hotel): string[] {
@@ -197,37 +136,28 @@ export class DetailsComponent implements OnInit {
     }
   }
 
-  getRatingStars(rating: number): string[] {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const stars: string[] = [];
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push('star');
-    }
-    if (hasHalfStar) {
-      stars.push('star_half');
-    }
-    while (stars.length < 5) {
-      stars.push('star_border');
-    }
-
-    return stars;
+  selectImage(index: number): void {
+    this.selectedImageIndex = index;
   }
 
-  getAmenityIcon(amenity: string): string {
-    return this.amenityIcons[amenity] || 'check_circle';
-  }
-
-  onBookNow(): void {
-    if (this.bookingForm.invalid) {
-      this.snackBar.open('Please fill in all required fields', 'Close', {
-        duration: 3000
+  toggleBookingForm(): void {
+    if (!this.isAuthenticated) {
+      this.router.navigate(['/login'], {
+        queryParams: { returnUrl: '/hotel-details' }
       });
+      return;
+    }
+    this.showBookingForm = !this.showBookingForm;
+  }
+
+  submitBooking(): void {
+    if (this.bookingForm.invalid) {
+      this.bookingError = 'Please fill in all required fields';
       return;
     }
     
     this.isBooking = true;
+    this.bookingError = '';
 
     const bookingData: any = {
       roomId: this.bookingForm.value.roomId,
@@ -242,23 +172,14 @@ export class DetailsComponent implements OnInit {
     this.bookingService.createBooking(bookingData).subscribe({
       next: (booking) => {
         this.isBooking = false;
-        this.snackBar.open('Booking successful!', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        this.router.navigate(['/bookings']);
+        this.bookingMessage = 'Booking successful!';
+        setTimeout(() => {
+          this.router.navigate(['/my-bookings']);
+        }, 2000);
       },
       error: (error) => {
         this.isBooking = false;
-        console.error('Booking error:', error);
-        this.snackBar.open(
-          error.error?.message || error.message || 'Booking failed. Please try again.',
-          'Close',
-          {
-            duration: 5000,
-            panelClass: ['error-snackbar']
-          }
-        );
+        this.bookingError = error.error?.message || 'Booking failed. Please try again.';
       }
     });
   }
@@ -267,11 +188,7 @@ export class DetailsComponent implements OnInit {
     this.router.navigate(['/hotels']);
   }
 
-  /**
-   * Handle image load error by setting default placeholder
-   */
   onImageError(event: any): void {
-    console.warn('Hotel image failed to load, using default placeholder');
     event.target.src = this.defaultHotelImage;
   }
 }

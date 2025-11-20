@@ -16,6 +16,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './components/shared/header/header.component';
 import { FooterComponent } from './components/shared/footer/footer.component';
+import { ToastComponent } from './components/shared/toast/toast.component';
 import { environment } from '../environments/environment';
 
 @Component({
@@ -24,7 +25,8 @@ import { environment } from '../environments/environment';
   imports: [
     RouterOutlet,      // Required for routing
     HeaderComponent,   // Application header with navigation
-    FooterComponent    // Application footer
+    FooterComponent,   // Application footer
+    ToastComponent     // Toast notifications
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'

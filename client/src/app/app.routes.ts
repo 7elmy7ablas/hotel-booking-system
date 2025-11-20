@@ -1,17 +1,27 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
-import { hotelDetailsGuard } from './guards/hotel-details.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
-  // Default redirect
+  // Public Routes
   { 
     path: '', 
-    redirectTo: '/hotels', 
-    pathMatch: 'full' 
+    loadComponent: () => import('./components/home/home.component').then(m => m.HomeComponent),
+    title: 'Home - Hotel Booking'
+  },
+  {
+    path: 'hotels',
+    loadComponent: () => import('./components/hotels/search/search.component').then(m => m.SearchComponent),
+    title: 'Search Hotels - Hotel Booking'
+  },
+  {
+    path: 'hotel-details',
+    loadComponent: () => import('./components/hotels/details/details.component').then(m => m.DetailsComponent),
+    title: 'Hotel Details - Hotel Booking'
   },
 
-  // Guest-only routes - Authentication (redirect if already logged in)
+  // Guest-Only Routes (redirect if authenticated)
   {
     path: 'login',
     loadComponent: () => import('./components/auth/login/login.component').then(m => m.LoginComponent),
@@ -25,29 +35,16 @@ export const routes: Routes = [
     title: 'Register - Hotel Booking'
   },
 
-  // Public routes - Hotels
+  // Protected Routes (require authentication)
   {
-    path: 'hotels',
-    loadComponent: () => import('./components/hotels/search/search.component').then(m => m.SearchComponent),
-    title: 'Search Hotels - Hotel Booking'
-  },
-  {
-    path: 'hotel-details',
-    loadComponent: () => import('./components/hotels/details/details.component').then(m => m.DetailsComponent),
-    canActivate: [hotelDetailsGuard],
-    title: 'Hotel Details - Hotel Booking'
-  },
-
-  // Protected routes - Bookings (require authentication)
-  {
-    path: 'bookings',
-    loadComponent: () => import('./components/bookings/list/booking-list.component').then(m => m.BookingListComponent),
+    path: 'my-bookings',
+    loadComponent: () => import('./features/hotels/my-bookings.component').then(m => m.MyBookingsComponent),
     canActivate: [authGuard],
     title: 'My Bookings - Hotel Booking'
   },
   {
-    path: 'my-bookings',
-    loadComponent: () => import('./features/hotels/my-bookings.component').then(m => m.MyBookingsComponent),
+    path: 'bookings',
+    loadComponent: () => import('./components/bookings/list/booking-list.component').then(m => m.BookingListComponent),
     canActivate: [authGuard],
     title: 'My Bookings - Hotel Booking'
   },
@@ -63,8 +60,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
     title: 'Booking Details - Hotel Booking'
   },
-
-  // Protected routes - User Profile (require authentication)
   {
     path: 'profile',
     loadComponent: () => import('./features/user/profile.component').then(m => m.ProfileComponent),
@@ -72,7 +67,15 @@ export const routes: Routes = [
     title: 'My Profile - Hotel Booking'
   },
 
-  // Wildcard route - 404 page
+  // Admin Routes (require Admin role)
+  {
+    path: 'admin',
+    loadComponent: () => import('./components/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+    canActivate: [adminGuard],
+    title: 'Admin Dashboard - Hotel Booking'
+  },
+
+  // Wildcard Route - 404 page
   { 
     path: '**', 
     loadComponent: () => import('./components/shared/not-found/not-found.component').then(m => m.NotFoundComponent),

@@ -1,0 +1,254 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.admin-dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: $gray-50;
+}
+
+// Sidebar
+.sidebar {
+  width: 280px;
+  background: $white;
+  border-right: 1px solid $gray-200;
+  @include transition(width);
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+
+  &.collapsed {
+    width: 80px;
+  }
+
+  @include mobile {
+    width: 80px;
+  }
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-6;
+  border-bottom: 1px solid $gray-200;
+
+  h2 {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $gray-900;
+    margin: 0;
+  }
+
+  .toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: $spacing-2;
+    border-radius: $radius-md;
+    @include transition(background);
+
+    &:hover {
+      background: $gray-100;
+    }
+
+    svg {
+      width: 24px;
+      height: 24px;
+      color: $gray-600;
+    }
+  }
+}
+
+.sidebar-nav {
+  padding: $spacing-4;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  padding: $spacing-3 $spacing-4;
+  background: transparent;
+  border: none;
+  border-radius: $radius-md;
+  color: $gray-600;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  @include transition(all);
+  text-align: left;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: $gray-100;
+    color: $gray-900;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, $primary 0%, $secondary 100%);
+    color: $white;
+  }
+
+  .sidebar.collapsed & {
+    justify-content: center;
+    padding: $spacing-3;
+  }
+}
+
+// Main Content
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  padding: $spacing-8;
+  @include transition(margin-left);
+
+  &.sidebar-collapsed {
+    margin-left: 80px;
+  }
+
+  @include mobile {
+    margin-left: 80px;
+    padding: $spacing-4;
+  }
+}
+
+.section {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.section-header {
+  margin-bottom: $spacing-8;
+
+  h1 {
+    font-size: $font-size-4xl;
+    font-weight: $font-weight-bold;
+    color: $gray-900;
+    margin-bottom: $spacing-2;
+
+    @include mobile {
+      font-size: $font-size-3xl;
+    }
+  }
+
+  p {
+    font-size: $font-size-lg;
+    color: $gray-600;
+    margin: 0;
+  }
+}
+
+// Stats Grid
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-6;
+  margin-bottom: $spacing-8;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stat-card {
+  background: $white;
+  padding: $spacing-6;
+  border-radius: $radius-lg;
+  @include card-elevation('md');
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  @include transition(all);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-xl;
+  }
+}
+
+.stat-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 32px;
+    height: 32px;
+    color: $white;
+  }
+
+  &.hotels {
+    background: linear-gradient(135deg, $primary 0%, $primary-dark 100%);
+  }
+
+  &.bookings {
+    background: linear-gradient(135deg, $secondary 0%, $secondary-dark 100%);
+  }
+
+  &.revenue {
+    background: linear-gradient(135deg, $warning 0%, $warning-dark 100%);
+  }
+
+  &.users {
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+  }
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+}
+
+.stat-label {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  color: $gray-900;
+}
+
+// Placeholder Content
+.placeholder-content {
+  background: $white;
+  padding: $spacing-16;
+  border-radius: $radius-lg;
+  @include card-elevation('md');
+  text-align: center;
+
+  p {
+    font-size: $font-size-xl;
+    color: $gray-900;
+    margin-bottom: $spacing-2;
+
+    &.text-muted {
+      font-size: $font-size-base;
+      color: $gray-600;
+    }
+  }
+}

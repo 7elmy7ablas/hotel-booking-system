@@ -1,286 +1,263 @@
-<div class="details-container">
-  <!-- Loading State -->
-  <div class="loading-container" *ngIf="isLoading">
-    <mat-spinner diameter="60"></mat-spinner>
-    <p>Loading hotel details...</p>
+<div class="hotel-details-container" *ngIf="hotel">
+  <!-- Back Button -->
+  <div class="back-button-wrapper">
+    <div class="container">
+      <button (click)="goBack()" class="btn btn-ghost">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Hotels
+      </button>
+    </div>
   </div>
 
-  <!-- Error State -->
-  <div class="error-container" *ngIf="!isLoading && errorMessage">
-    <mat-icon>error_outline</mat-icon>
-    <h2>{{ errorMessage }}</h2>
-    <button mat-raised-button color="primary" (click)="goBack()">
-      <mat-icon>arrow_back</mat-icon>
-      Back to Search
-    </button>
-  </div>
-
-  <!-- Hotel Details -->
-  <div class="hotel-content" *ngIf="!isLoading && hotel && !errorMessage">
-    <!-- Back Button -->
-    <button mat-button class="back-button" (click)="goBack()">
-      <mat-icon>arrow_back</mat-icon>
-      Back to Search
-    </button>
-
-    <!-- Image Gallery -->
-    <mat-card class="gallery-card">
-      <mat-tab-group>
-        <mat-tab *ngFor="let image of hotelImages; let i = index" [label]="'Image ' + (i + 1)">
-          <div class="image-container">
-            <img 
-              [src]="image || defaultHotelImage" 
-              [alt]="hotel.name + ' - Image ' + (i + 1)"
-              (error)="onImageError($event)"
-              loading="lazy">
+  <!-- Hero Gallery -->
+  <section class="hero-gallery">
+    <div class="container">
+      <div class="gallery-wrapper">
+        <div class="main-image">
+          <img 
+            [src]="hotelImages[selectedImageIndex]" 
+            [alt]="hotel.name"
+            (error)="onImageError($event)"
+          />
+        </div>
+        <div class="thumbnail-grid">
+          <div 
+            *ngFor="let image of hotelImages.slice(0, 4); let i = index"
+            class="thumbnail"
+            [class.active]="i === selectedImageIndex"
+            (click)="selectImage(i)"
+          >
+            <img [src]="image" [alt]="hotel.name" (error)="onImageError($event)" />
           </div>
-        </mat-tab>
-      </mat-tab-group>
-    </mat-card>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <!-- Hotel Information -->
-    <div class="info-section">
-      <mat-card class="info-card">
-        <mat-card-header>
-          <mat-card-title>
-            <h1>{{ hotel.name }}</h1>
-          </mat-card-title>
-        </mat-card-header>
-
-        <mat-card-content>
-          <!-- Location and Rating -->
-          <div class="header-info">
+  <!-- Hotel Info Section -->
+  <section class="hotel-info-section">
+    <div class="container">
+      <div class="info-layout">
+        <div class="main-info">
+          <h1 class="hotel-title">{{ hotel.name }}</h1>
+          
+          <div class="hotel-meta">
             <div class="location">
-              <mat-icon>location_on</mat-icon>
-              <span>{{ hotel.address }}, {{ hotel.city }}, {{ hotel.country }}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {{ hotel.address }}, {{ hotel.city }}, {{ hotel.country }}
             </div>
-
             <div class="rating">
-              <mat-icon *ngFor="let star of getRatingStars(hotel.rating)">
-                {{ star }}
-              </mat-icon>
-              <span class="rating-value">{{ hotel.rating }} / 5</span>
+              <span class="rating-icon">⭐</span>
+              <span class="rating-value">{{ hotel.rating || 4.5 }}</span>
+              <span class="rating-text">(Excellent)</span>
             </div>
           </div>
 
-          <mat-divider></mat-divider>
-
-          <!-- Description -->
-          <div class="description-section">
+          <div class="description">
             <h2>About This Hotel</h2>
-            <p>{{ hotel.description }}</p>
+            <p>{{ hotel.description || 'Experience luxury and comfort at this premium hotel. Enjoy world-class amenities, exceptional service, and a memorable stay in the heart of ' + hotel.city + '.' }}</p>
           </div>
 
-          <mat-divider></mat-divider>
-
-          <!-- Amenities -->
           <div class="amenities-section">
             <h2>Amenities</h2>
             <div class="amenities-grid">
-              <div class="amenity-item" *ngFor="let amenity of hotel.amenities">
-                <mat-icon>{{ getAmenityIcon(amenity) }}</mat-icon>
-                <span>{{ amenity }}</span>
+              <div *ngFor="let amenity of hotel.amenities" class="amenity-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ amenity }}
               </div>
             </div>
           </div>
-        </mat-card-content>
-      </mat-card>
 
-      <!-- Available Rooms -->
-      <mat-card class="rooms-card">
-        <mat-card-header>
-          <mat-card-title>
+          <!-- Available Rooms -->
+          <div class="rooms-section">
             <h2>Available Rooms</h2>
-          </mat-card-title>
-        </mat-card-header>
+            
+            <div *ngIf="rooms.length === 0" class="empty-rooms">
+              <p>No rooms available at the moment.</p>
+            </div>
 
-        <mat-card-content>
-          <div class="rooms-list">
-            <mat-card class="room-card" *ngFor="let room of availableRooms">
-              <div class="room-info">
+            <div class="rooms-grid">
+              <div *ngFor="let room of rooms" class="room-card">
                 <div class="room-header">
                   <h3>{{ room.type }}</h3>
                   <div class="room-price">
-                    <span class="price">${{ room.pricePerNight }}</span>
-                    <span class="per-night">/ night</span>
+                    <span class="price-value">${{ room.pricePerNight }}</span>
+                    <span class="price-period">/night</span>
                   </div>
                 </div>
-
                 <div class="room-details">
-                  <div class="detail-item">
-                    <mat-icon>people</mat-icon>
-                    <span>Up to {{ room.capacity }} guests</span>
+                  <div class="room-detail-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Up to {{ room.capacity }} guests
                   </div>
-
-                  <div class="detail-item">
-                    <mat-icon>meeting_room</mat-icon>
-                    <span>Room {{ room.roomNumber }}</span>
-                  </div>
-
-                  <div class="detail-item" *ngIf="room.isAvailable">
-                    <mat-icon class="available-icon">check_circle</mat-icon>
-                    <span>Available</span>
+                  <div class="room-detail-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {{ room.isAvailable ? 'Available' : 'Not Available' }}
                   </div>
                 </div>
-
-                <div class="room-amenities" *ngIf="room.amenities && room.amenities.length > 0">
-                  <mat-chip-set>
-                    <mat-chip *ngFor="let amenity of room.amenities">
-                      {{ amenity }}
-                    </mat-chip>
-                  </mat-chip-set>
+                <div class="room-amenities">
+                  <span *ngFor="let amenity of room.amenities?.slice(0, 3)" class="amenity-tag">
+                    {{ amenity }}
+                  </span>
                 </div>
               </div>
-            </mat-card>
+            </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+
+        <!-- Booking Card (Sticky) -->
+        <div class="booking-sidebar">
+          <div class="booking-card" *ngIf="isAuthenticated">
+            <h3>Book Your Stay</h3>
+            <p class="booking-subtitle">Reserve this hotel now</p>
+
+            <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()" class="booking-form">
+              <div class="form-group">
+                <label class="form-label">Check-in Date</label>
+                <input 
+                  type="date" 
+                  formControlName="checkInDate"
+                  [min]="minDate.toISOString().split('T')[0]"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Check-out Date</label>
+                <input 
+                  type="date" 
+                  formControlName="checkOutDate"
+                  [min]="minDate.toISOString().split('T')[0]"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Number of Guests</label>
+                <input 
+                  type="number" 
+                  formControlName="guests"
+                  min="1"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Select Room</label>
+                <select formControlName="roomId" class="form-select">
+                  <option value="">Choose a room</option>
+                  <option *ngFor="let room of rooms" [value]="room.id">
+                    {{ room.type }} - ${{ room.pricePerNight }}/night
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Guest Name</label>
+                <input 
+                  type="text" 
+                  formControlName="guestName"
+                  placeholder="Full name"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input 
+                  type="email" 
+                  formControlName="guestEmail"
+                  placeholder="your@email.com"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Phone</label>
+                <input 
+                  type="tel" 
+                  formControlName="guestPhone"
+                  placeholder="+1 (555) 000-0000"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Special Requests (Optional)</label>
+                <textarea 
+                  formControlName="specialRequests"
+                  placeholder="Any special requirements..."
+                  class="form-textarea"
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <div *ngIf="numberOfNights > 0" class="price-summary">
+                <div class="summary-row">
+                  <span>{{ numberOfNights }} nights</span>
+                  <span>${{ totalPrice }}</span>
+                </div>
+                <div class="summary-total">
+                  <span>Total</span>
+                  <span>${{ totalPrice }}</span>
+                </div>
+              </div>
+
+              <div *ngIf="bookingError" class="form-error">
+                {{ bookingError }}
+              </div>
+
+              <div *ngIf="bookingMessage" class="form-success">
+                {{ bookingMessage }}
+              </div>
+
+              <button 
+                type="submit" 
+                class="btn btn-primary w-full"
+                [disabled]="isBooking || bookingForm.invalid"
+              >
+                {{ isBooking ? 'Processing...' : 'Book Now' }}
+              </button>
+            </form>
+          </div>
+
+          <!-- Guest CTA -->
+          <div class="booking-card guest-cta" *ngIf="!isAuthenticated">
+            <h3>Ready to Book?</h3>
+            <p>Sign in to reserve your stay at this amazing hotel</p>
+            <a routerLink="/login" [queryParams]="{returnUrl: '/hotel-details'}" class="btn btn-primary w-full">
+              Login to Book
+            </a>
+            <p class="cta-footer">
+              Don't have an account? 
+              <a routerLink="/register" class="text-primary">Sign up</a>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
+  </section>
+</div>
 
-    <!-- Booking Form -->
-    <mat-card class="booking-card">
-      <mat-card-header>
-        <mat-card-title>
-          <h2>Book Your Stay</h2>
-        </mat-card-title>
-      </mat-card-header>
-
-      <mat-card-content>
-        <form [formGroup]="bookingForm" (ngSubmit)="onBookNow()">
-          <!-- Date Selection -->
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Check-in Date</mat-label>
-              <input 
-                matInput 
-                [matDatepicker]="checkInPicker" 
-                formControlName="checkInDate"
-                [min]="minDate">
-              <mat-icon matPrefix>event</mat-icon>
-              <mat-datepicker-toggle matSuffix [for]="checkInPicker"></mat-datepicker-toggle>
-              <mat-datepicker #checkInPicker></mat-datepicker>
-              <mat-error *ngIf="bookingForm.get('checkInDate')?.invalid">
-                Check-in date is required
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Check-out Date</mat-label>
-              <input 
-                matInput 
-                [matDatepicker]="checkOutPicker" 
-                formControlName="checkOutDate"
-                [min]="bookingForm.value.checkInDate || minDate">
-              <mat-icon matPrefix>event</mat-icon>
-              <mat-datepicker-toggle matSuffix [for]="checkOutPicker"></mat-datepicker-toggle>
-              <mat-datepicker #checkOutPicker></mat-datepicker>
-              <mat-error *ngIf="bookingForm.get('checkOutDate')?.invalid">
-                Check-out date is required
-              </mat-error>
-            </mat-form-field>
-          </div>
-
-          <!-- Guests and Room Selection -->
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Number of Guests</mat-label>
-              <input 
-                matInput 
-                type="number" 
-                formControlName="guests" 
-                min="1" 
-                max="10">
-              <mat-icon matPrefix>people</mat-icon>
-              <mat-error *ngIf="bookingForm.get('guests')?.invalid">
-                At least 1 guest required
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Select Room</mat-label>
-              <mat-select formControlName="roomId">
-                <mat-option *ngFor="let room of availableRooms" [value]="room.id">
-                  {{ room.type }} - ${{ room.pricePerNight }}/night
-                </mat-option>
-              </mat-select>
-              <mat-icon matPrefix>meeting_room</mat-icon>
-              <mat-error *ngIf="bookingForm.get('roomId')?.invalid">
-                Please select a room
-              </mat-error>
-            </mat-form-field>
-          </div>
-
-          <mat-divider></mat-divider>
-
-          <!-- Guest Information -->
-          <h3>Guest Information</h3>
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field full-width">
-              <mat-label>Full Name</mat-label>
-              <input matInput formControlName="guestName" placeholder="Enter your full name">
-              <mat-icon matPrefix>person</mat-icon>
-              <mat-error *ngIf="bookingForm.get('guestName')?.invalid">
-                Name is required
-              </mat-error>
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="guestEmail" placeholder="your@email.com">
-              <mat-icon matPrefix>email</mat-icon>
-              <mat-error *ngIf="bookingForm.get('guestEmail')?.invalid">
-                Valid email is required
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Phone Number</mat-label>
-              <input matInput formControlName="guestPhone" placeholder="+1 234 567 8900">
-              <mat-icon matPrefix>phone</mat-icon>
-              <mat-error *ngIf="bookingForm.get('guestPhone')?.invalid">
-                Phone number is required
-              </mat-error>
-            </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="form-field full-width">
-            <mat-label>Special Requests (Optional)</mat-label>
-            <textarea 
-              matInput 
-              formControlName="specialRequests" 
-              rows="3"
-              placeholder="Any special requests or requirements?"></textarea>
-            <mat-icon matPrefix>note</mat-icon>
-          </mat-form-field>
-
-          <mat-divider></mat-divider>
-
-          <!-- Price Summary -->
-          <div class="price-summary" *ngIf="selectedRoom && numberOfNights > 0">
-            <div class="summary-row">
-              <span>{{ selectedRoom.type }}</span>
-              <span>${{ selectedRoom.pricePerNight }} x {{ numberOfNights }} nights</span>
-            </div>
-            <div class="summary-row total">
-              <span>Total Price</span>
-              <span class="total-amount">${{ totalPrice }}</span>
-            </div>
-          </div>
-
-          <!-- Submit Button -->
-          <button 
-            mat-raised-button 
-            color="primary" 
-            type="submit" 
-            class="book-button"
-            [disabled]="bookingForm.invalid || isBooking">
-            <mat-spinner *ngIf="isBooking" diameter="20"></mat-spinner>
-            <span *ngIf="!isBooking">Book Now</span>
-          </button>
-        </form>
-      </mat-card-content>
-    </mat-card>
+<!-- Loading State -->
+<div *ngIf="isLoading" class="loading-container">
+  <div class="container">
+    <div class="skeleton skeleton-hero"></div>
+    <div class="skeleton-content">
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text" style="width: 70%;"></div>
+      <div class="skeleton skeleton-text" style="width: 50%;"></div>
+    </div>
   </div>
 </div>

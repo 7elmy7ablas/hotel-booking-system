@@ -1,0 +1,156 @@
+<div class="home-container">
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <h1 class="hero-title">Find Your Perfect Stay</h1>
+      <p class="hero-subtitle">Search from thousands of hotels worldwide</p>
+      
+      <!-- Search Form with Glassmorphism -->
+      <div class="search-card">
+        <form (ngSubmit)="onSearch()" class="search-form">
+          <input 
+            type="text" 
+            [(ngModel)]="searchQuery"
+            name="search"
+            placeholder="Search by city, hotel name, or location..."
+            class="search-input"
+          />
+          <button type="submit" class="btn btn-primary search-btn">
+            Search Hotels
+          </button>
+        </form>
+      </div>
+
+      <div class="hero-actions">
+        <button (click)="navigateToHotels()" class="btn btn-primary btn-lg">
+          Get Started
+        </button>
+        <a routerLink="/hotels" class="btn btn-outline btn-lg">
+          Explore Hotels
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Hotels Section -->
+  <section class="featured-section py-16">
+    <div class="container">
+      <div class="section-header">
+        <h2>Featured Hotels</h2>
+        <p class="text-muted">Discover our handpicked selection of premium accommodations</p>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="hotels-grid">
+        <div *ngFor="let i of [1,2,3,4,5,6]" class="hotel-card-skeleton">
+          <div class="skeleton skeleton-image"></div>
+          <div class="skeleton-content">
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text" style="width: 60%;"></div>
+            <div class="skeleton skeleton-text" style="width: 40%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hotels Grid -->
+      <div *ngIf="!isLoading && featuredHotels.length > 0" class="hotels-grid">
+        <div 
+          *ngFor="let hotel of featuredHotels" 
+          class="hotel-card"
+          (click)="viewHotel(hotel.id)"
+        >
+          <div class="hotel-image">
+            <img 
+              [src]="hotel.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'" 
+              [alt]="hotel.name"
+            />
+            <div class="hotel-rating">
+              <span class="rating-icon">⭐</span>
+              <span>{{ hotel.rating || 4.5 }}</span>
+            </div>
+          </div>
+          <div class="hotel-info">
+            <h3 class="hotel-name">{{ hotel.name }}</h3>
+            <p class="hotel-location">📍 {{ hotel.city }}, {{ hotel.country }}</p>
+            <div class="hotel-amenities">
+              <span *ngFor="let amenity of hotel.amenities?.slice(0, 3)" class="amenity-tag">
+                {{ amenity }}
+              </span>
+            </div>
+            <div class="hotel-footer">
+              <span class="hotel-price">From $99/night</span>
+              <button class="btn btn-sm btn-primary">View Details</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && featuredHotels.length === 0" class="empty-state">
+        <p>No featured hotels available at the moment.</p>
+      </div>
+
+      <div class="text-center mt-8">
+        <button (click)="navigateToHotels()" class="btn btn-outline btn-lg">
+          View All Hotels
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="how-it-works-section py-16">
+    <div class="container">
+      <div class="section-header">
+        <h2>How It Works</h2>
+        <p class="text-muted">Book your perfect stay in three simple steps</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <h3>Search</h3>
+          <p>Browse through thousands of hotels and find the perfect match for your needs</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          </div>
+          <h3>Compare</h3>
+          <p>Compare prices, amenities, and reviews to make an informed decision</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3>Book</h3>
+          <p>Secure your reservation with our easy and safe booking process</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action Section (for guests only) -->
+  <section *ngIf="!isAuthenticated" class="cta-section py-16">
+    <div class="container">
+      <div class="cta-card">
+        <h2>Ready to Start Your Journey?</h2>
+        <p>Join thousands of travelers who trust us for their accommodation needs</p>
+        <button (click)="navigateToRegister()" class="btn btn-primary btn-lg">
+          Sign Up Now
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

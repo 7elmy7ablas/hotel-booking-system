@@ -184,26 +184,40 @@ public class HotelsController : ControllerBase
         }
         catch (DbUpdateException dbEx)
         {
-            _logger.LogError(dbEx, "Database error creating hotel: {Message}. Inner: {InnerMessage}",
-                dbEx.Message,
-                dbEx.InnerException?.Message ?? "None");
+            // SECURITY: Only log exception type in production, not full details
+            if (_env.IsDevelopment())
+            {
+                _logger.LogError(dbEx, "Database error creating hotel");
+            }
+            else
+            {
+                _logger.LogError("Database error creating hotel. Type: {ExceptionType}", dbEx.GetType().Name);
+            }
 
+            // SECURITY: Never expose internal database details in production
             return Problem(
-                detail: _env.IsDevelopment() ? $"{dbEx.Message}\nInner: {dbEx.InnerException?.Message}" : "A database error occurred",
+                detail: _env.IsDevelopment() ? $"{dbEx.Message}\nInner: {dbEx.InnerException?.Message}" : null,
                 statusCode: StatusCodes.Status500InternalServerError,
-                title: "Database Error"
+                title: "An error occurred while creating the hotel"
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error creating hotel: {Message}. Type: {ExceptionType}",
-                ex.Message,
-                ex.GetType().Name);
+            // SECURITY: Only log exception type in production
+            if (_env.IsDevelopment())
+            {
+                _logger.LogError(ex, "Unexpected error creating hotel");
+            }
+            else
+            {
+                _logger.LogError("Unexpected error creating hotel. Type: {ExceptionType}", ex.GetType().Name);
+            }
 
+            // SECURITY: Never expose stack traces or internal details in production
             return Problem(
-                detail: _env.IsDevelopment() ? $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}" : "An unexpected error occurred",
+                detail: _env.IsDevelopment() ? $"{ex.GetType().Name}: {ex.Message}" : null,
                 statusCode: StatusCodes.Status500InternalServerError,
-                title: "Error Creating Hotel"
+                title: "An error occurred while creating the hotel"
             );
         }
     }
