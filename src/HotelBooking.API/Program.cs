@@ -7,11 +7,14 @@ using Serilog;
 using HotelBooking.Infrastructure.Data;
 using HotelBooking.Application.Interfaces;
 using HotelBooking.Infrastructure.Repositories;
+using HotelBooking.API.Middleware;
+using AspNetCoreRateLimit;
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
+        .AddJsonFile("appsettings.RateLimiting.json", optional: true)
         .Build())
     .Enrich.FromLogContext()
     .WriteTo.Console()
@@ -20,6 +23,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    var startTime = DateTime.UtcNow;
     Log.Information("Starting Hotel Booking API");
 
     var builder = WebApplication.CreateBuilder(args);
@@ -74,9 +78,14 @@ try
     });
 
     // Add DbContext
+    // Priority: Environment Variables > appsettings.{Environment}.json > appsettings.json
+    var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
+        ?? builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Database connection string not configured");
+    
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(
-            builder.Configuration.GetConnectionString("DefaultConnection"),
+            connectionString,
             sqlOptions => sqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
@@ -86,10 +95,17 @@ try
     builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
     // Add JWT Authentication
+    // Priority: Environment Variables > appsettings.{Environment}.json > appsettings.json
     var jwtSettings = builder.Configuration.GetSection("Jwt");
-    var secret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
-    var issuer = jwtSettings["Issuer"] ?? "HotelBookingAPI";
-    var audience = jwtSettings["Audience"] ?? "HotelBookingClient";
+    var secret = Environment.GetEnvironmentVariable("JWT_SECRET") 
+        ?? jwtSettings["Secret"] 
+        ?? throw new InvalidOperationException("JWT Secret not configured");
+    var issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") 
+        ?? jwtSettings["Issuer"] 
+        ?? "HotelBookingAPI";
+    var audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") 
+        ?? jwtSettings["Audience"] 
+        ?? "HotelBookingClient";
 
     builder.Services.AddAuthentication(options =>
     {
@@ -119,15 +135,82 @@ try
     // Add CORS
     builder.Services.AddCors(options =>
     {
-        options.AddDefaultPolicy(policy =>
+        options.AddPolicy("AllowAngularApp", policy =>
         {
-            policy.AllowAnyOrigin()
+            var allowedOrigins = builder.Environment.IsDevelopment()
+                ? new[] { "http://localhost:4200", "https://localhost:4200" }
+                : builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyMethod()
-                  .AllowAnyHeader();
+                  .AllowAnyHeader()
+                  .AllowCredentials();
         });
     });
 
+    // Add Rate Limiting
+    builder.Services.AddMemoryCache();
+    builder.Services.Configure<AspNetCoreRateLimit.IpRateLimitOptions>(
+        builder.Configuration.GetSection("IpRateLimiting"));
+    builder.Services.Configure<AspNetCoreRateLimit.IpRateLimitPolicies>(
+        builder.Configuration.GetSection("IpRateLimitPolicies"));
+    builder.Services.AddSingleton<AspNetCoreRateLimit.IIpPolicyStore, AspNetCoreRateLimit.MemoryCacheIpPolicyStore>();
+    builder.Services.AddSingleton<AspNetCoreRateLimit.IRateLimitCounterStore, AspNetCoreRateLimit.MemoryCacheRateLimitCounterStore>();
+    builder.Services.AddSingleton<AspNetCoreRateLimit.IRateLimitConfiguration, AspNetCoreRateLimit.RateLimitConfiguration>();
+    builder.Services.AddSingleton<AspNetCoreRateLimit.IProcessingStrategy, AspNetCoreRateLimit.AsyncKeyLockProcessingStrategy>();
+    builder.Services.AddInMemoryRateLimiting();
+
+    // Add Response Compression
+    builder.Services.AddResponseCompression(options =>
+    {
+        options.EnableForHttps = true;
+        options.MimeTypes = new[]
+        {
+            "application/json",
+            "application/xml",
+            "text/plain",
+            "text/html",
+            "text/css",
+            "text/javascript",
+            "application/javascript"
+        };
+    });
+
+    // Add Response Caching
+    builder.Services.AddResponseCaching();
+
     var app = builder.Build();
+
+    // Database connection retry logic
+    var maxRetries = 5;
+    var retryDelay = TimeSpan.FromSeconds(5);
+    
+    for (int i = 0; i < maxRetries; i++)
+    {
+        try
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await context.Database.CanConnectAsync();
+                Log.Information("Database connection established successfully");
+                await DbSeeder.SeedData(context);
+                Log.Information("Database seeding completed");
+            }
+            break;
+        }
+        catch (Exception ex)
+        {
+            if (i == maxRetries - 1)
+            {
+                Log.Fatal(ex, "Failed to connect to database after {MaxRetries} attempts", maxRetries);
+                throw;
+            }
+            Log.Warning(ex, "Database connection attempt {Attempt} of {MaxRetries} failed. Retrying in {Delay} seconds...", 
+                i + 1, maxRetries, retryDelay.TotalSeconds);
+            await Task.Delay(retryDelay);
+        }
+    }
 
     // Configure the HTTP request pipeline
     if (app.Environment.IsDevelopment())
@@ -136,9 +219,15 @@ try
         app.UseSwaggerUI();
     }
 
+    app.UseResponseCompression();
+    app.UseMiddleware<SecurityHeadersMiddleware>();
+    app.UseMiddleware<RequestLoggingMiddleware>();
+    app.UseMiddleware<GlobalExceptionHandler>();
+    app.UseIpRateLimiting();
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();
-    app.UseCors();
+    app.UseCors("AllowAngularApp");
+    app.UseResponseCaching();
 
     app.UseAuthentication();
     app.UseAuthorization();
@@ -159,7 +248,21 @@ try
     }))
     .WithName("Root");
 
-    Log.Information("Hotel Booking API started successfully");
+    var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0";
+    var environment = app.Environment.EnvironmentName;
+    var startupDuration = (DateTime.UtcNow - startTime).TotalSeconds;
+
+    Log.Information("╔════════════════════════════════════════════════════════════╗");
+    Log.Information("║          Hotel Booking API - Started Successfully          ║");
+    Log.Information("╠════════════════════════════════════════════════════════════╣");
+    Log.Information("║  Application: Hotel Booking API                           ║");
+    Log.Information("║  Version:     {Version,-44} ║", version);
+    Log.Information("║  Environment: {Environment,-44} ║", environment);
+    Log.Information("║  Startup Time: {StartupTime,-43} ║", $"{startupDuration:F2}s");
+    Log.Information("║  URLs:        https://localhost:5001                       ║");
+    Log.Information("║               http://localhost:5000                        ║");
+    Log.Information("╚════════════════════════════════════════════════════════════╝");
+
     app.Run();
 }
 catch (Exception ex)

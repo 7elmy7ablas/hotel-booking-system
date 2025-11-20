@@ -1,0 +1,49 @@
+<div class="my-bookings-container">
+  <h1>My Bookings</h1>
+
+  @if (loading()) {
+    <div class="loading">
+      <mat-spinner></mat-spinner>
+    </div>
+  } @else if (bookings().length === 0) {
+    <div class="no-bookings">
+      <h2>No bookings yet</h2>
+      <p>Start exploring hotels and make your first booking!</p>
+      <button mat-raised-button color="primary" (click)="navigateToHotels()">
+        Browse Hotels
+      </button>
+    </div>
+  } @else {
+    <div class="bookings-grid">
+      @for (booking of bookings(); track booking.id) {
+        <mat-card class="booking-card">
+          <mat-card-header>
+            <mat-card-title>{{ booking.hotelName || 'Hotel Booking' }}</mat-card-title>
+            <mat-card-subtitle>{{ booking.roomType || 'Room' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="booking-info">
+              <div class="info-row">
+                <span class="label">Check-in:</span>
+                <span class="value">{{ formatDate(booking.checkInDate) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Check-out:</span>
+                <span class="value">{{ formatDate(booking.checkOutDate) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Total Price:</span>
+                <span class="price">${{ booking.totalPrice }}</span>
+              </div>
+              <div class="status-chip">
+                <mat-chip [class]="getStatusClass(booking.status)">
+                  {{ booking.status }}
+                </mat-chip>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

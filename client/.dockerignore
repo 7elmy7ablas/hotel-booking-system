@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+dist
+.angular
+coverage
+.nyc_output
+.vscode
+.git
+.gitignore
+*.md
+.editorconfig

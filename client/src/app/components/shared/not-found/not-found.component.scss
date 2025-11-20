@@ -60,14 +60,46 @@
   }
 }
 
-@media (max-width: 768px) {
+// Tablet breakpoint
+@media (max-width: 960px) {
+  .not-found-card {
+    padding: 32px;
+  }
+
   .not-found-content {
     h1 {
-      font-size: 56px;
+      font-size: 64px;
     }
 
     h2 {
-      font-size: 24px;
+      font-size: 28px;
+    }
+
+    .error-icon {
+      font-size: 100px;
+      width: 100px;
+      height: 100px;
+    }
+  }
+}
+
+// Mobile breakpoint
+@media (max-width: 600px) {
+  .not-found-card {
+    padding: 24px;
+  }
+
+  .not-found-content {
+    h1 {
+      font-size: 48px;
+    }
+
+    h2 {
+      font-size: 20px;
+    }
+
+    p {
+      font-size: 14px;
     }
 
     .error-icon {

@@ -1,0 +1,73 @@
+<div class="profile-container">
+  <h1>My Profile</h1>
+
+  @if (loading()) {
+    <div class="loading">
+      <mat-spinner></mat-spinner>
+    </div>
+  } @else if (user()) {
+    <mat-card class="profile-card">
+      <mat-card-content>
+        @if (!editMode()) {
+          <div class="profile-view">
+            <div class="profile-field">
+              <span class="label">Full Name:</span>
+              <span class="value">{{ user()!.fullName }}</span>
+            </div>
+            <div class="profile-field">
+              <span class="label">Email:</span>
+              <span class="value">{{ user()!.email }}</span>
+            </div>
+            <div class="profile-field">
+              <span class="label">Phone Number:</span>
+              <span class="value">{{ user()!.phoneNumber || 'Not provided' }}</span>
+            </div>
+            <div class="profile-field">
+              <span class="label">Role:</span>
+              <span class="value">{{ user()!.role }}</span>
+            </div>
+            <div class="profile-field">
+              <span class="label">Member Since:</span>
+              <span class="value">{{ formatDate(user()!.createdAt) }}</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button mat-raised-button color="primary" (click)="enableEditMode()">
+              Edit Profile
+            </button>
+          </div>
+        } @else {
+          <form [formGroup]="profileForm" (ngSubmit)="onSave()">
+            <mat-form-field appearance="outline">
+              <mat-label>Full Name</mat-label>
+              <input matInput formControlName="fullName">
+              @if (profileForm.get('fullName')?.hasError('required') && profileForm.get('fullName')?.touched) {
+                <mat-error>Full name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input matInput [value]="user()!.email" readonly>
+              <mat-hint>Email cannot be changed</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="phoneNumber">
+            </mat-form-field>
+
+            <div class="actions">
+              <button mat-raised-button color="primary" type="submit" [disabled]="profileForm.invalid || saving()">
+                {{ saving() ? 'Saving...' : 'Save Changes' }}
+              </button>
+              <button mat-button type="button" (click)="cancelEdit()">
+                Cancel
+              </button>
+            </div>
+          </form>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

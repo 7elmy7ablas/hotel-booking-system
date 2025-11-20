@@ -1,0 +1,53 @@
+<div class="booking-form-container">
+  <h2>Book Your Room</h2>
+  <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()">
+    <mat-form-field appearance="outline">
+      <mat-label>Check-in Date</mat-label>
+      <input matInput [matDatepicker]="checkInPicker" formControlName="checkInDate" [min]="minDate">
+      <mat-datepicker-toggle matSuffix [for]="checkInPicker"></mat-datepicker-toggle>
+      <mat-datepicker #checkInPicker></mat-datepicker>
+      @if (bookingForm.get('checkInDate')?.hasError('required') && bookingForm.get('checkInDate')?.touched) {
+        <mat-error>Check-in date is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Check-out Date</mat-label>
+      <input matInput [matDatepicker]="checkOutPicker" formControlName="checkOutDate" [min]="minCheckOutDate()">
+      <mat-datepicker-toggle matSuffix [for]="checkOutPicker"></mat-datepicker-toggle>
+      <mat-datepicker #checkOutPicker></mat-datepicker>
+      @if (bookingForm.get('checkOutDate')?.hasError('required') && bookingForm.get('checkOutDate')?.touched) {
+        <mat-error>Check-out date is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Room Type</mat-label>
+      <mat-select formControlName="roomType">
+        @for (room of rooms(); track room.id) {
+          <mat-option [value]="room.id">
+            {{ room.type }} - ${{ room.pricePerNight }}/night (Capacity: {{ room.capacity }})
+          </mat-option>
+        }
+      </mat-select>
+      @if (bookingForm.get('roomType')?.hasError('required') && bookingForm.get('roomType')?.touched) {
+        <mat-error>Room type is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Number of Guests</mat-label>
+      <input matInput type="number" formControlName="numberOfGuests" min="1">
+      @if (bookingForm.get('numberOfGuests')?.hasError('required') && bookingForm.get('numberOfGuests')?.touched) {
+        <mat-error>Number of guests is required</mat-error>
+      }
+      @if (bookingForm.get('numberOfGuests')?.hasError('min')) {
+        <mat-error>At least 1 guest is required</mat-error>
+      }
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit" [disabled]="bookingForm.invalid || submitting()">
+      {{ submitting() ? 'Booking...' : 'Book Now' }}
+    </button>
+  </form>
+</div>

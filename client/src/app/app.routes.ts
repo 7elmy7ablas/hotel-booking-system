@@ -46,6 +46,12 @@ export const routes: Routes = [
     title: 'My Bookings - Hotel Booking'
   },
   {
+    path: 'my-bookings',
+    loadComponent: () => import('./features/hotels/my-bookings.component').then(m => m.MyBookingsComponent),
+    canActivate: [authGuard],
+    title: 'My Bookings - Hotel Booking'
+  },
+  {
     path: 'bookings/create',
     loadComponent: () => import('./components/bookings/create/create.component').then(m => m.CreateComponent),
     canActivate: [authGuard],
@@ -61,14 +67,15 @@ export const routes: Routes = [
   // Protected routes - User Profile (require authentication)
   {
     path: 'profile',
-    loadComponent: () => import('./components/user/profile/profile.component').then(m => m.ProfileComponent),
+    loadComponent: () => import('./features/user/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard],
     title: 'My Profile - Hotel Booking'
   },
 
-  // Wildcard route - 404 redirect
+  // Wildcard route - 404 page
   { 
     path: '**', 
-    redirectTo: '/hotels' 
+    loadComponent: () => import('./components/shared/not-found/not-found.component').then(m => m.NotFoundComponent),
+    title: '404 - Page Not Found'
   }
 ];

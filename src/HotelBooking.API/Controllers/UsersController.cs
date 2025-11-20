@@ -45,6 +45,7 @@ public class UsersController : ControllerBase
             // Get user from database
             var user = await _context.Users
                 .Where(u => u.Id == userId && !u.IsDeleted)
+                .AsNoTracking()
                 .FirstOrDefaultAsync();
 
             if (user == null)
@@ -90,6 +91,7 @@ public class UsersController : ControllerBase
 
             var users = await _context.Users
                 .Where(u => !u.IsDeleted)
+                .AsNoTracking()
                 .ToListAsync();
 
             // Map to UserDto (exclude PasswordHash)
@@ -128,6 +130,7 @@ public class UsersController : ControllerBase
             _logger.LogInformation("Retrieving user with ID {UserId}", id);
 
             var user = await _context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
             if (user is null)
@@ -168,6 +171,11 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createUserDto)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to create user: {@User}", new { createUserDto.Email, createUserDto.FullName, createUserDto.Role });
@@ -248,6 +256,11 @@ public class UsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] User updatedUser)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to update user with ID {UserId}", id);

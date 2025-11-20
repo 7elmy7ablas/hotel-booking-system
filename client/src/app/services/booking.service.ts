@@ -19,24 +19,26 @@ export class BookingService {
 
   createBooking(bookingData: CreateBookingRequest): Observable<Booking> {
     const hotel = this.selectedHotelService.getSelectedHotel();
-    const user = this.authService.getCurrentUser();
+    const userId = localStorage.getItem('userId');
     
     if (!hotel) {
       throw new Error('No hotel selected');
     }
     
-    if (!user) {
+    if (!userId) {
       throw new Error('User not authenticated');
     }
     
     const payload = {
       hotelId: hotel.id,
       roomId: bookingData.roomId,
+      userId: parseInt(userId),
       checkInDate: bookingData.checkInDate,
       checkOutDate: bookingData.checkOutDate,
-      guestName: bookingData.guestName || user.fullName,
-      guestEmail: bookingData.guestEmail || user.email,
-      guestPhone: bookingData.guestPhone || user.phoneNumber,
+      numberOfGuests: (bookingData as any).numberOfGuests || 1,
+      guestName: bookingData.guestName,
+      guestEmail: bookingData.guestEmail,
+      guestPhone: bookingData.guestPhone,
       specialRequests: bookingData.specialRequests
     };
     
@@ -101,6 +103,28 @@ export class BookingService {
         specialRequests: b.specialRequests || b.SpecialRequests,
         createdAt: b.createdAt || b.CreatedAt
       }))
+    );
+  }
+
+  getMyBookings(): Observable<Booking[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/my-bookings`).pipe(
+      map((bookings: any[]) => bookings.map(b => ({
+        id: b.id || b.Id,
+        userId: b.userId || b.UserId,
+        roomId: b.roomId || b.RoomId,
+        hotelId: b.hotelId || b.HotelId,
+        checkInDate: b.checkInDate || b.CheckInDate,
+        checkOutDate: b.checkOutDate || b.CheckOutDate,
+        totalPrice: b.totalPrice || b.TotalPrice,
+        status: b.status || b.Status,
+        guestName: b.guestName || b.GuestName,
+        guestEmail: b.guestEmail || b.GuestEmail,
+        guestPhone: b.guestPhone || b.GuestPhone,
+        specialRequests: b.specialRequests || b.SpecialRequests,
+        createdAt: b.createdAt || b.CreatedAt,
+        hotelName: b.hotelName || b.HotelName,
+        roomType: b.roomType || b.RoomType
+      } as any)))
     );
   }
 

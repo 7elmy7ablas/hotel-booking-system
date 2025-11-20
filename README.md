@@ -2,6 +2,88 @@
 
 A comprehensive hotel booking system built with .NET 10 following Clean Architecture principles.
 
+## Quick Start
+
+### Prerequisites
+- .NET 10 SDK
+- SQL Server (LocalDB for development, SQL Server for production)
+- Node.js 18+ (for Angular frontend)
+
+### Environment Variables
+
+For production deployment, configure these environment variables:
+
+**Database:**
+- `CONNECTION_STRING` - Database connection string
+
+**JWT Authentication:**
+- `JWT_SECRET` - Secret key for JWT token signing (minimum 32 characters)
+- `JWT_ISSUER` - Token issuer (default: "HotelBookingAPI")
+- `JWT_AUDIENCE` - Token audience (default: "HotelBookingClient")
+
+**Email (Optional):**
+- `EMAIL_SMTP_SERVER` - SMTP server address
+- `EMAIL_SMTP_PORT` - SMTP port
+- `EMAIL_SMTP_USERNAME` - SMTP username
+- `EMAIL_SMTP_PASSWORD` - SMTP password
+- `EMAIL_FROM` - Sender email address
+
+**Application:**
+- `ASPNETCORE_ENVIRONMENT` - Set to "Production" for production deployment
+
+### Setup Steps
+
+1. Clone the repository
+2. Navigate to the API project:
+```bash
+cd src/HotelBooking.API
+```
+
+3. Restore dependencies:
+```bash
+dotnet restore
+```
+
+4. Update database connection string in `appsettings.json` (development) or set `CONNECTION_STRING` environment variable (production)
+
+5. Run database migrations:
+```bash
+cd ../HotelBooking.Infrastructure
+dotnet ef migrations add InitialCreate --startup-project ../HotelBooking.API
+dotnet ef database update --startup-project ../HotelBooking.API
+```
+
+6. Run the application:
+```bash
+cd ../HotelBooking.API
+dotnet run
+```
+
+The API will be available at:
+- HTTPS: https://localhost:5001
+- HTTP: http://localhost:5000
+- Swagger UI: https://localhost:5001/swagger
+
+### Production Deployment
+
+1. Build the application:
+```bash
+dotnet build -c Release
+```
+
+2. Publish the application:
+```bash
+dotnet publish -c Release -o ./publish
+```
+
+3. Set environment variables on your server
+4. Run database migrations on production database
+5. Deploy published files to your server
+6. Configure reverse proxy (IIS/Nginx/Apache)
+7. Verify health endpoint: `GET /api/health`
+
+See `deployment-checklist.md` for complete deployment guide.
+
 ## Project Structure
 
 ```
@@ -75,37 +157,51 @@ src/
 - Serilog
 - Swagger/OpenAPI
 
-## Getting Started
+## API Endpoints
 
-### Prerequisites
-- .NET 10 SDK
-- SQL Server (LocalDB or full instance)
+### Health & Status
+- `GET /` - API status and version
+- `GET /api/health` - Health check with version and timestamp
+- `GET /health` - Database health check
 
-### Database Setup
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login (returns JWT token)
 
-1. Update the connection string in `appsettings.json` if needed
-2. Create the database migration:
-```bash
-cd src/HotelBooking.Infrastructure
-dotnet ef migrations add InitialCreate --startup-project ../HotelBooking.API
-```
+### Hotels
+- `GET /api/hotels` - Get all hotels
+- `GET /api/hotels/{id}` - Get hotel by ID
+- `POST /api/hotels` - Create new hotel (requires authentication)
+- `PUT /api/hotels/{id}` - Update hotel (requires authentication)
+- `DELETE /api/hotels/{id}` - Delete hotel (requires authentication)
 
-3. Apply the migration:
-```bash
-dotnet ef database update --startup-project ../HotelBooking.API
-```
+### Rooms
+- `GET /api/rooms` - Get all rooms
+- `GET /api/rooms/{id}` - Get room by ID
+- `GET /api/rooms/hotel/{hotelId}` - Get rooms by hotel
+- `GET /api/rooms/available` - Get available rooms (query params: checkIn, checkOut)
+- `POST /api/rooms` - Create new room (requires authentication)
+- `PUT /api/rooms/{id}` - Update room (requires authentication)
+- `DELETE /api/rooms/{id}` - Delete room (requires authentication)
 
-### Running the Application
+### Bookings
+- `GET /api/bookings` - Get all bookings (admin only)
+- `GET /api/bookings/{id}` - Get booking by ID
+- `GET /api/bookings/user/{userId}` - Get user bookings
+- `POST /api/bookings` - Create new booking (requires authentication)
+- `PUT /api/bookings/{id}` - Update booking (requires authentication)
+- `DELETE /api/bookings/{id}` - Cancel booking (requires authentication)
 
-```bash
-cd src/HotelBooking.API
-dotnet run
-```
+### Payments
+- `GET /api/payments/{id}` - Get payment by ID
+- `GET /api/payments/booking/{bookingId}` - Get payment by booking
+- `POST /api/payments` - Process payment (requires authentication)
 
-The API will be available at:
-- HTTPS: https://localhost:5001
-- HTTP: http://localhost:5000
-- Swagger UI: https://localhost:5001/swagger
+### Users
+- `GET /api/users` - Get all users (admin only)
+- `GET /api/users/{id}` - Get user by ID
+- `PUT /api/users/{id}` - Update user (requires authentication)
+- `DELETE /api/users/{id}` - Delete user (requires authentication)
 
 ## Architecture Principles
 

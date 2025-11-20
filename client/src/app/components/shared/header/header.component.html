@@ -13,7 +13,7 @@
         Hotels
       </a>
 
-      <a mat-button routerLink="/bookings" routerLinkActive="active-link" *ngIf="isAuthenticated">
+      <a mat-button routerLink="/my-bookings" routerLinkActive="active-link" *ngIf="isAuthenticated">
         <mat-icon>event_note</mat-icon>
         My Bookings
       </a>
@@ -47,7 +47,7 @@
             <mat-icon>person</mat-icon>
             <span>Profile</span>
           </button>
-          <button mat-menu-item routerLink="/bookings">
+          <button mat-menu-item routerLink="/my-bookings">
             <mat-icon>event_note</mat-icon>
             <span>My Bookings</span>
           </button>
@@ -101,7 +101,7 @@
         <span>Hotels</span>
       </a>
 
-      <a mat-button routerLink="/bookings" routerLinkActive="active-link" *ngIf="isAuthenticated" (click)="closeMobileMenu()">
+      <a mat-button routerLink="/my-bookings" routerLinkActive="active-link" *ngIf="isAuthenticated" (click)="closeMobileMenu()">
         <mat-icon>event_note</mat-icon>
         <span>My Bookings</span>
       </a>

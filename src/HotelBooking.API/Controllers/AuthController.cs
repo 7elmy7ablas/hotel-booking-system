@@ -8,6 +8,7 @@ using BCrypt.Net;
 using HotelBooking.API.DTOs;
 using HotelBooking.Domain.Entities;
 using HotelBooking.Infrastructure.Data;
+using HotelBooking.API.Validators;
 
 namespace HotelBooking.API.Controllers;
 
@@ -42,8 +43,20 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterDto registerDto)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
+            // Validate password strength
+            if (!Validators.PasswordValidator.IsValid(registerDto.Password, out var passwordError))
+            {
+                _logger.LogWarning("Registration attempt with weak password: {Email}", registerDto.Email);
+                return BadRequest(new { message = passwordError });
+            }
+
             // Validate email uniqueness
             var existingUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == registerDto.Email && !u.IsDeleted);
@@ -105,6 +118,11 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginDto loginDto)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             // Find user by email
@@ -126,8 +144,8 @@ public class AuthController : ControllerBase
 
             // Generate JWT token
             var token = GenerateJwtToken(user);
-            var expirationDays = _configuration.GetValue<int>("Jwt:ExpirationInDays", 7);
-            var expiresAt = DateTime.UtcNow.AddDays(expirationDays);
+            var expirationHours = _configuration.GetValue<int>("Jwt:ExpirationInHours", 24);
+            var expiresAt = DateTime.UtcNow.AddHours(expirationHours);
 
             _logger.LogInformation("User logged in successfully: {Email}", user.Email);
 
@@ -172,6 +190,11 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             // Find user by email
@@ -189,6 +212,13 @@ public class AuthController : ControllerBase
             {
                 _logger.LogWarning("Failed password change attempt for email: {Email} - Invalid old password", changePasswordDto.Email);
                 return Unauthorized(new { message = "Invalid old password" });
+            }
+
+            // Validate new password strength
+            if (!Validators.PasswordValidator.IsValid(changePasswordDto.NewPassword, out var passwordError))
+            {
+                _logger.LogWarning("Password change attempt with weak password: {Email}", changePasswordDto.Email);
+                return BadRequest(new { message = passwordError });
             }
 
             // Hash new password with work factor 12
@@ -218,7 +248,7 @@ public class AuthController : ControllerBase
         var secret = _configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
         var issuer = _configuration["Jwt:Issuer"] ?? "HotelBookingAPI";
         var audience = _configuration["Jwt:Audience"] ?? "HotelBookingClient";
-        var expirationDays = _configuration.GetValue<int>("Jwt:ExpirationInDays", 7);
+        var expirationHours = _configuration.GetValue<int>("Jwt:ExpirationInHours", 24);
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -231,14 +261,15 @@ public class AuthController : ControllerBase
             new Claim("email", user.Email),
             new Claim(ClaimTypes.Role, user.Role),
             new Claim("role", user.Role),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
         };
 
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(expirationDays),
+            expires: DateTime.UtcNow.AddHours(expirationHours),
             signingCredentials: credentials
         );
 

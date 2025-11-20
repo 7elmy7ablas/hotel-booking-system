@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: hotel-booking-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - hotel-booking-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q "SELECT 1" -C || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api:
+    build:
+      context: ./src
+      dockerfile: HotelBooking.API/Dockerfile
+    container_name: hotel-booking-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - CONNECTION_STRING=Server=sqlserver;Database=HotelBookingDb;User Id=sa;Password=YourStrong@Passw0rd;MultipleActiveResultSets=true;TrustServerCertificate=true;Encrypt=false
+      - JWT_SECRET=YourSuperSecretKeyThatIsAtLeast32CharactersLongForProduction!@#
+      - JWT_ISSUER=HotelBookingAPI
+      - JWT_AUDIENCE=HotelBookingClient
+    ports:
+      - "5000:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - hotel-booking-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: hotel-booking-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+    networks:
+      - hotel-booking-network
+    restart: unless-stopped
+
+networks:
+  hotel-booking-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:

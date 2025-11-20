@@ -33,6 +33,7 @@ public class PaymentsController : ControllerBase
             var payments = await _context.Payments
                 .Where(p => !p.IsDeleted)
                 .Include(p => p.Booking)
+                .AsNoTracking()
                 .ToListAsync();
 
             _logger.LogInformation("Retrieved {Count} payments", payments.Count);
@@ -59,6 +60,7 @@ public class PaymentsController : ControllerBase
 
             var payment = await _context.Payments
                 .Include(p => p.Booking)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
             if (payment is null)
@@ -86,6 +88,11 @@ public class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreatePayment([FromBody] Payment payment)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to create payment: {@Payment}", new { payment.BookingId, payment.Amount, payment.PaymentMethod });
@@ -154,6 +161,11 @@ public class PaymentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdatePayment(Guid id, [FromBody] Payment updatedPayment)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to update payment with ID {PaymentId}", id);

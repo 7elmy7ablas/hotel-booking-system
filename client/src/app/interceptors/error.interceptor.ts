@@ -1,18 +1,21 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 /**
  * Error Interceptor - Global HTTP error handling
  * 
  * This interceptor handles HTTP errors globally and provides
- * user-friendly error messages.
+ * user-friendly error messages via MatSnackBar.
  * 
  * @param req - The outgoing HTTP request
  * @param next - The next handler in the chain
  * @returns Observable of the HTTP event
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  const snackBar = inject(MatSnackBar);
+
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An error occurred';
@@ -32,6 +35,14 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       // Log the full error for debugging
       console.error('[ErrorInterceptor] Full error:', error);
+
+      // Show error message in snackbar
+      snackBar.open(errorMessage, 'Close', {
+        duration: 5000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top',
+        panelClass: ['error-snackbar']
+      });
 
       // Return an observable with a user-facing error message
       return throwError(() => ({

@@ -33,6 +33,7 @@ public class RoomsController : ControllerBase
             var rooms = await _context.Rooms
                 .Where(r => !r.IsDeleted)
                 .Include(r => r.Hotel)
+                .AsNoTracking()
                 .ToListAsync();
 
             _logger.LogInformation("Retrieved {Count} rooms", rooms.Count);
@@ -59,6 +60,7 @@ public class RoomsController : ControllerBase
 
             var room = await _context.Rooms
                 .Include(r => r.Hotel)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
 
             if (room is null)
@@ -86,6 +88,11 @@ public class RoomsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateRoom([FromBody] Room room)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to create room: {@Room}", new { room.RoomType, room.HotelId, room.PricePerNight });
@@ -155,6 +162,11 @@ public class RoomsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateRoom(Guid id, [FromBody] Room updatedRoom)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to update room with ID {RoomId}", id);

@@ -36,6 +36,7 @@ public class BookingsController : ControllerBase
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.Hotel)
                 .Include(b => b.Payment)
+                .AsNoTracking()
                 .ToListAsync();
 
             _logger.LogInformation("Retrieved {Count} bookings", bookings.Count);
@@ -65,6 +66,7 @@ public class BookingsController : ControllerBase
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.Hotel)
                 .Include(b => b.Payment)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(b => b.Id == id && !b.IsDeleted);
 
             if (booking is null)
@@ -92,6 +94,11 @@ public class BookingsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateBooking([FromBody] Booking booking)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to create booking: {@Booking}", new { booking.UserId, booking.RoomId, booking.CheckIn, booking.CheckOut });
@@ -196,6 +203,11 @@ public class BookingsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateBooking(Guid id, [FromBody] Booking updatedBooking)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to update booking with ID {BookingId}", id);

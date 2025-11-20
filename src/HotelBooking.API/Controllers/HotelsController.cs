@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using HotelBooking.Infrastructure.Data;
 using HotelBooking.Domain.Entities;
+using HotelBooking.API.Models;
 
 namespace HotelBooking.API.Controllers;
 
@@ -14,26 +16,64 @@ public class HotelsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<HotelsController> _logger;
     private readonly IHostEnvironment _env;
+    private readonly IMemoryCache _cache;
 
-    public HotelsController(ApplicationDbContext context, ILogger<HotelsController> logger, IHostEnvironment env)
+    public HotelsController(ApplicationDbContext context, ILogger<HotelsController> logger, IHostEnvironment env, IMemoryCache cache)
     {
         _context = context;
         _logger = logger;
         _env = env;
+        _cache = cache;
     }
 
     // GET: api/hotels
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Hotel>), StatusCodes.Status200OK)]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "pageNumber", "pageSize" })]
+    [ProducesResponseType(typeof(PagedResult<Hotel>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAllHotels()
+    public async Task<IActionResult> GetAllHotels([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
-            var hotels = await _context.Hotels
-                .Include(h => h.Rooms)
-                .ToListAsync();
-            return Ok(hotels);
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100;
+
+            var cacheKey = $"hotels_page_{pageNumber}_size_{pageSize}";
+
+            if (!_cache.TryGetValue(cacheKey, out PagedResult<Hotel>? result))
+            {
+                var totalCount = await _context.Hotels
+                    .Where(h => !h.IsDeleted)
+                    .AsNoTracking()
+                    .CountAsync();
+
+                var hotels = await _context.Hotels
+                    .Where(h => !h.IsDeleted)
+                    .Include(h => h.Rooms.Where(r => !r.IsDeleted))
+                    .AsNoTracking()
+                    .OrderBy(h => h.Name)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                result = new PagedResult<Hotel>
+                {
+                    Items = hotels,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalCount = totalCount
+                };
+
+                var cacheOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+
+                _cache.Set(cacheKey, result, cacheOptions);
+
+                _logger.LogInformation("Hotels cached for page {PageNumber}, size {PageSize}", pageNumber, pageSize);
+            }
+
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -51,13 +91,26 @@ public class HotelsController : ControllerBase
     {
         try
         {
-            var hotel = await _context.Hotels
-                .Include(h => h.Rooms)
-                .FirstOrDefaultAsync(h => h.Id == id);
+            var cacheKey = $"hotel_{id}";
 
-            if (hotel is null)
+            if (!_cache.TryGetValue(cacheKey, out Hotel? hotel))
             {
-                return NotFound(new { Message = $"Hotel with ID {id} not found" });
+                hotel = await _context.Hotels
+                    .Include(h => h.Rooms.Where(r => !r.IsDeleted))
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(h => h.Id == id && !h.IsDeleted);
+
+                if (hotel is null)
+                {
+                    return NotFound(new { Message = $"Hotel with ID {id} not found" });
+                }
+
+                var cacheOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
+
+                _cache.Set(cacheKey, hotel, cacheOptions);
+
+                _logger.LogInformation("Hotel {HotelId} cached", id);
             }
 
             return Ok(hotel);
@@ -76,6 +129,11 @@ public class HotelsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateHotel([FromBody] Hotel hotel)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             _logger.LogInformation("Attempting to create hotel: {@Hotel}", new { hotel.Name, hotel.Location, hotel.Rating });
@@ -119,6 +177,9 @@ public class HotelsController : ControllerBase
 
             _logger.LogInformation("Hotel created successfully with ID {HotelId}", hotel.Id);
 
+            _cache.Remove($"hotel_{hotel.Id}");
+            InvalidateHotelListCache();
+
             return CreatedAtAction(nameof(GetHotelById), new { id = hotel.Id }, hotel);
         }
         catch (DbUpdateException dbEx)
@@ -155,6 +216,11 @@ public class HotelsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateHotel(Guid id, [FromBody] Hotel updatedHotel)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             // Find existing hotel
@@ -187,6 +253,9 @@ public class HotelsController : ControllerBase
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Hotel with ID {HotelId} updated", id);
+
+            _cache.Remove($"hotel_{id}");
+            InvalidateHotelListCache();
 
             return NoContent();
         }
@@ -223,12 +292,26 @@ public class HotelsController : ControllerBase
 
             _logger.LogInformation("Hotel with ID {HotelId} soft deleted", id);
 
+            _cache.Remove($"hotel_{id}");
+            InvalidateHotelListCache();
+
             return NoContent();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting hotel with ID {HotelId}", id);
             return Problem("An error occurred while deleting the hotel");
+        }
+    }
+
+    private void InvalidateHotelListCache()
+    {
+        for (int page = 1; page <= 10; page++)
+        {
+            for (int size = 10; size <= 100; size += 10)
+            {
+                _cache.Remove($"hotels_page_{page}_size_{size}");
+            }
         }
     }
 }
