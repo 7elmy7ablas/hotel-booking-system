@@ -90,7 +90,7 @@ export class DetailsComponent implements OnInit {
 
 
 
-  loadRooms(hotelId: number): void {
+  loadRooms(hotelId: string): void {
     this.hotelService.getRoomsByHotelId(hotelId).subscribe({
       next: (rooms) => {
         this.rooms = rooms;

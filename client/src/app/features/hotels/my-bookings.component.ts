@@ -1,13 +1,14 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { BookingService } from '../../services/booking.service';
 import { Booking } from '../../models/booking.model';
 
 @Component({
   selector: 'app-my-bookings',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ScrollingModule],
   templateUrl: './my-bookings.component.html',
   styleUrls: ['./my-bookings.component.scss']
 })
@@ -20,7 +21,7 @@ export class MyBookingsComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
   selectedFilter = 'All';
-  cancellingBookingId: number | null = null;
+  cancellingBookingId: string | null = null;
 
   ngOnInit(): void {
     this.loadBookings();
@@ -30,6 +31,7 @@ export class MyBookingsComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
     
+    // PERFORMANCE: Using cached booking service
     this.bookingService.getMyBookings().subscribe({
       next: (bookings) => {
         this.bookings = bookings;
@@ -54,7 +56,7 @@ export class MyBookingsComponent implements OnInit {
     }
   }
 
-  cancelBooking(bookingId: number): void {
+  cancelBooking(bookingId: string): void {
     if (!confirm('Are you sure you want to cancel this booking?')) {
       return;
     }
@@ -74,7 +76,7 @@ export class MyBookingsComponent implements OnInit {
     });
   }
 
-  viewBookingDetails(bookingId: number): void {
+  viewBookingDetails(bookingId: string): void {
     this.router.navigate(['/bookings', bookingId]);
   }
 

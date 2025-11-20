@@ -267,3 +267,13 @@
     line-height: $line-height-relaxed;
   }
 }
+
+// PERFORMANCE: Virtual Scroll Viewport
+.virtual-scroll-viewport {
+  height: 1500px;
+  width: 100%;
+  
+  .cdk-virtual-scroll-content-wrapper {
+    width: 100%;
+  }
+}

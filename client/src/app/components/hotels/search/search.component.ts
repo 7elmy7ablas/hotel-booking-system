@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { HotelService } from '../../../services/hotel.service';
 import { SelectedHotelService } from '../../../services/selected-hotel.service';
@@ -13,7 +14,8 @@ import { Hotel } from '../../../models/hotel.model';
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    ScrollingModule
   ],
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.scss']
@@ -70,6 +72,7 @@ export class SearchComponent implements OnInit {
   loadAllHotels(): void {
     this.isLoading = true;
     
+    // PERFORMANCE: Using cached hotel service
     this.hotelService.getHotels().subscribe({
       next: (response) => {
         this.hotels = Array.isArray(response) ? response : [];

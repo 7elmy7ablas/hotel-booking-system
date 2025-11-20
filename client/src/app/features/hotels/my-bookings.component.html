@@ -62,9 +62,96 @@
         </div>
       </div>
 
-      <!-- Bookings Grid -->
-      <div *ngIf="!isLoading && filteredBookings.length > 0" class="bookings-grid">
-        <div *ngFor="let booking of filteredBookings" class="booking-card">
+      <!-- Bookings Grid with Virtual Scroll for large lists -->
+      <div *ngIf="!isLoading && filteredBookings.length > 0">
+        <!-- PERFORMANCE: Use virtual scroll for lists with more than 15 items -->
+        <cdk-virtual-scroll-viewport 
+          *ngIf="filteredBookings.length > 15"
+          [itemSize]="300" 
+          class="virtual-scroll-viewport">
+          <div class="bookings-grid">
+            <div *cdkVirtualFor="let booking of filteredBookings" class="booking-card">
+              <div class="booking-header">
+                <h3 class="hotel-name">{{ booking.hotelName || 'Hotel Booking' }}</h3>
+                <span class="badge" [ngClass]="getStatusClass(booking.status)">
+                  {{ booking.status }}
+                </span>
+              </div>
+
+              <div class="booking-details">
+                <div class="detail-row">
+                  <div class="detail-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <span class="detail-label">Check-in</span>
+                      <span class="detail-value">{{ formatDate(booking.checkInDate) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="detail-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <span class="detail-label">Check-out</span>
+                      <span class="detail-value">{{ formatDate(booking.checkOutDate) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="detail-row">
+                  <div class="detail-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <div>
+                      <span class="detail-label">Room Type</span>
+                      <span class="detail-value">{{ booking.roomType || 'Standard Room' }}</span>
+                    </div>
+                  </div>
+
+                  <div class="detail-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <div>
+                      <span class="detail-label">Total Price</span>
+                      <span class="detail-value price">${{ booking.totalPrice || 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="booking.guestName" class="guest-info">
+                  <span class="detail-label">Guest:</span>
+                  <span class="detail-value">{{ booking.guestName }}</span>
+                </div>
+              </div>
+
+              <div class="booking-actions">
+                <button 
+                  class="btn btn-outline btn-sm"
+                  (click)="viewBookingDetails(booking.id)"
+                >
+                  View Details
+                </button>
+                <button 
+                  *ngIf="booking.status !== 'Cancelled' && booking.status !== 'Completed'"
+                  class="btn btn-danger btn-sm"
+                  (click)="cancelBooking(booking.id)"
+                  [disabled]="cancellingBookingId === booking.id"
+                >
+                  {{ cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel Booking' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </cdk-virtual-scroll-viewport>
+        
+        <!-- Regular grid for smaller lists -->
+        <div *ngIf="filteredBookings.length <= 15" class="bookings-grid">
+          <div *ngFor="let booking of filteredBookings" class="booking-card">
           <div class="booking-header">
             <h3 class="hotel-name">{{ booking.hotelName || 'Hotel Booking' }}</h3>
             <span class="badge" [ngClass]="getStatusClass(booking.status)">
@@ -139,6 +226,7 @@
               {{ cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel Booking' }}
             </button>
           </div>
+        </div>
         </div>
       </div>
 

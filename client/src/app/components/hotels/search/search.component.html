@@ -81,79 +81,164 @@
         </div>
       </div>
 
-      <!-- Hotels Grid -->
-      <div *ngIf="!isLoading && filteredHotels.length > 0" class="hotels-grid" role="list" aria-label="Available hotels">
-        <article 
-          *ngFor="let hotel of filteredHotels; let i = index" 
-          class="hotel-card"
-          role="listitem"
-          [attr.aria-label]="'Hotel ' + (i + 1) + ' of ' + filteredHotels.length + ': ' + hotel.name"
-          tabindex="0"
-          (click)="viewHotelDetails(hotel)"
-          (keydown.enter)="viewHotelDetails(hotel)"
-          (keydown.space)="viewHotelDetails(hotel); $event.preventDefault()"
-        >
-          <div class="hotel-image-wrapper">
-            <img 
-              [src]="hotel.imageUrl || defaultHotelImage" 
-              [alt]="'Photo of ' + hotel.name + ' in ' + hotel.city"
-              (error)="onImageError($event)"
-              class="hotel-image"
-              loading="lazy"
-            />
-            <div class="image-overlay" aria-hidden="true"></div>
-            <div class="hotel-rating-badge" role="img" [attr.aria-label]="'Rating: ' + (hotel.rating || 4.5) + ' out of 5 stars'">
-              <span class="rating-icon" aria-hidden="true">⭐</span>
-              <span class="rating-value">{{ hotel.rating || 4.5 }}</span>
-            </div>
-            <div class="price-badge" role="text" aria-label="Starting from $99 per night">
-              <span class="price-label">From</span>
-              <span class="price-value">$99</span>
-              <span class="price-period">/night</span>
-            </div>
+      <!-- Hotels Grid with Virtual Scroll for large lists -->
+      <div *ngIf="!isLoading && filteredHotels.length > 0" role="list" aria-label="Available hotels">
+        <!-- PERFORMANCE: Use virtual scroll for lists with more than 20 items -->
+        <cdk-virtual-scroll-viewport 
+          *ngIf="filteredHotels.length > 20"
+          [itemSize]="450" 
+          class="virtual-scroll-viewport">
+          <div class="hotels-grid">
+            <article 
+              *cdkVirtualFor="let hotel of filteredHotels; let i = index" 
+              class="hotel-card"
+              role="listitem"
+              [attr.aria-label]="'Hotel ' + (i + 1) + ' of ' + filteredHotels.length + ': ' + hotel.name"
+              tabindex="0"
+              (click)="viewHotelDetails(hotel)"
+              (keydown.enter)="viewHotelDetails(hotel)"
+              (keydown.space)="viewHotelDetails(hotel); $event.preventDefault()"
+            >
+              <div class="hotel-image-wrapper">
+                <img 
+                  [src]="hotel.imageUrl || defaultHotelImage" 
+                  [alt]="'Photo of ' + hotel.name + ' in ' + hotel.city"
+                  (error)="onImageError($event)"
+                  class="hotel-image"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="image-overlay" aria-hidden="true"></div>
+                <div class="hotel-rating-badge" role="img" [attr.aria-label]="'Rating: ' + (hotel.rating || 4.5) + ' out of 5 stars'">
+                  <span class="rating-icon" aria-hidden="true">⭐</span>
+                  <span class="rating-value">{{ hotel.rating || 4.5 }}</span>
+                </div>
+                <div class="price-badge" role="text" aria-label="Starting from $99 per night">
+                  <span class="price-label">From</span>
+                  <span class="price-value">$99</span>
+                  <span class="price-period">/night</span>
+                </div>
+              </div>
+
+              <div class="hotel-content">
+                <h3 class="hotel-name">{{ hotel.name }}</h3>
+                <p class="hotel-location">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span class="sr-only">Location:</span>
+                  {{ hotel.city }}, {{ hotel.country }}
+                </p>
+
+                <div class="hotel-amenities" role="list" aria-label="Hotel amenities">
+                  <span *ngFor="let amenity of hotel.amenities?.slice(0, 3)" class="amenity-tag" role="listitem">
+                    {{ amenity }}
+                  </span>
+                </div>
+
+                <div class="hotel-actions">
+                  <button 
+                    class="btn btn-outline btn-sm" 
+                    (click)="viewHotelDetails(hotel); $event.stopPropagation()"
+                    [attr.aria-label]="'View details for ' + hotel.name">
+                    View Details
+                  </button>
+                  <button 
+                    *ngIf="isAuthenticated" 
+                    class="btn btn-primary btn-sm"
+                    (click)="bookHotel(hotel, $event)"
+                    [attr.aria-label]="'Book ' + hotel.name + ' now'">
+                    Book Now
+                  </button>
+                  <button 
+                    *ngIf="!isAuthenticated" 
+                    class="btn btn-ghost btn-sm"
+                    (click)="bookHotel(hotel, $event)"
+                    aria-label="Login required to book this hotel">
+                    Login to Book
+                  </button>
+                </div>
+              </div>
+            </article>
           </div>
-
-          <div class="hotel-content">
-            <h3 class="hotel-name">{{ hotel.name }}</h3>
-            <p class="hotel-location">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span class="sr-only">Location:</span>
-              {{ hotel.city }}, {{ hotel.country }}
-            </p>
-
-            <div class="hotel-amenities" role="list" aria-label="Hotel amenities">
-              <span *ngFor="let amenity of hotel.amenities?.slice(0, 3)" class="amenity-tag" role="listitem">
-                {{ amenity }}
-              </span>
+        </cdk-virtual-scroll-viewport>
+        
+        <!-- Regular grid for smaller lists -->
+        <div *ngIf="filteredHotels.length <= 20" class="hotels-grid">
+          <article 
+            *ngFor="let hotel of filteredHotels; let i = index" 
+            class="hotel-card"
+            role="listitem"
+            [attr.aria-label]="'Hotel ' + (i + 1) + ' of ' + filteredHotels.length + ': ' + hotel.name"
+            tabindex="0"
+            (click)="viewHotelDetails(hotel)"
+            (keydown.enter)="viewHotelDetails(hotel)"
+            (keydown.space)="viewHotelDetails(hotel); $event.preventDefault()"
+          >
+            <div class="hotel-image-wrapper">
+              <img 
+                [src]="hotel.imageUrl || defaultHotelImage" 
+                [alt]="'Photo of ' + hotel.name + ' in ' + hotel.city"
+                (error)="onImageError($event)"
+                class="hotel-image"
+                loading="lazy"
+                decoding="async"
+              />
+              <div class="image-overlay" aria-hidden="true"></div>
+              <div class="hotel-rating-badge" role="img" [attr.aria-label]="'Rating: ' + (hotel.rating || 4.5) + ' out of 5 stars'">
+                <span class="rating-icon" aria-hidden="true">⭐</span>
+                <span class="rating-value">{{ hotel.rating || 4.5 }}</span>
+              </div>
+              <div class="price-badge" role="text" aria-label="Starting from $99 per night">
+                <span class="price-label">From</span>
+                <span class="price-value">$99</span>
+                <span class="price-period">/night</span>
+              </div>
             </div>
 
-            <div class="hotel-actions">
-              <button 
-                class="btn btn-outline btn-sm" 
-                (click)="viewHotelDetails(hotel); $event.stopPropagation()"
-                [attr.aria-label]="'View details for ' + hotel.name">
-                View Details
-              </button>
-              <button 
-                *ngIf="isAuthenticated" 
-                class="btn btn-primary btn-sm"
-                (click)="bookHotel(hotel, $event)"
-                [attr.aria-label]="'Book ' + hotel.name + ' now'">
-                Book Now
-              </button>
-              <button 
-                *ngIf="!isAuthenticated" 
-                class="btn btn-ghost btn-sm"
-                (click)="bookHotel(hotel, $event)"
-                aria-label="Login required to book this hotel">
-                Login to Book
-              </button>
+            <div class="hotel-content">
+              <h3 class="hotel-name">{{ hotel.name }}</h3>
+              <p class="hotel-location">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="sr-only">Location:</span>
+                {{ hotel.city }}, {{ hotel.country }}
+              </p>
+
+              <div class="hotel-amenities" role="list" aria-label="Hotel amenities">
+                <span *ngFor="let amenity of hotel.amenities?.slice(0, 3)" class="amenity-tag" role="listitem">
+                  {{ amenity }}
+                </span>
+              </div>
+
+              <div class="hotel-actions">
+                <button 
+                  class="btn btn-outline btn-sm" 
+                  (click)="viewHotelDetails(hotel); $event.stopPropagation()"
+                  [attr.aria-label]="'View details for ' + hotel.name">
+                  View Details
+                </button>
+                <button 
+                  *ngIf="isAuthenticated" 
+                  class="btn btn-primary btn-sm"
+                  (click)="bookHotel(hotel, $event)"
+                  [attr.aria-label]="'Book ' + hotel.name + ' now'">
+                  Book Now
+                </button>
+                <button 
+                  *ngIf="!isAuthenticated" 
+                  class="btn btn-ghost btn-sm"
+                  (click)="bookHotel(hotel, $event)"
+                  aria-label="Login required to book this hotel">
+                  Login to Book
+                </button>
+              </div>
             </div>
-          </div>
-        </article>
+          </article>
+        </div>
       </div>
 
       <!-- Empty State -->

@@ -41,7 +41,7 @@
           mat-button 
           [matMenuTriggerFor]="userMenu" 
           class="user-menu-button"
-          aria-label="User menu for {{ userName }}"
+          [attr.aria-label]="'User menu for ' + userName"
           aria-haspopup="true"
           [attr.aria-expanded]="isUserMenuOpen">
           <mat-icon aria-hidden="true">account_circle</mat-icon>

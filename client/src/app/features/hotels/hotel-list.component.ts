@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -7,7 +7,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { HotelService } from '../../core/services/hotel.service';
 import { Hotel } from '../../core/models/hotel.model';
 
@@ -23,7 +26,8 @@ import { Hotel } from '../../core/models/hotel.model';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule
+    MatSelectModule,
+    ScrollingModule
   ],
   template: `
     <div class="hotel-list-page">
@@ -39,13 +43,13 @@ import { Hotel } from '../../core/models/hotel.model';
               <mat-form-field appearance="outline" class="search-field">
                 <mat-icon matPrefix>search</mat-icon>
                 <mat-label>Search destination</mat-label>
-                <input matInput [(ngModel)]="searchQuery" placeholder="Where do you want to go?">
+                <input matInput [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange($event)" placeholder="Where do you want to go?">
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="search-field">
                 <mat-icon matPrefix>location_city</mat-icon>
                 <mat-label>City</mat-label>
-                <mat-select [(ngModel)]="selectedCity">
+                <mat-select [(ngModel)]="selectedCity" (ngModelChange)="onCityChange($event)">
                   <mat-option value="">All Cities</mat-option>
                   <mat-option value="New York">New York</mat-option>
                   <mat-option value="Paris">Paris</mat-option>
@@ -79,48 +83,96 @@ import { Hotel } from '../../core/models/hotel.model';
               <button mat-raised-button (click)="loadHotels()">Try Again</button>
             </div>
           } @else {
-            <div class="hotels-grid">
-              @for (hotel of hotels(); track hotel.Id) {
-                <div class="hotel-card fade-in" [routerLink]="['/hotels', hotel.Id]">
-                  <div class="hotel-image-wrapper">
-                    @if (hotel.ImageUrl) {
-                      <img [src]="hotel.ImageUrl" [alt]="hotel.Name" class="hotel-image">
-                    } @else {
-                      <div class="hotel-image-placeholder">
-                        <mat-icon>hotel</mat-icon>
+            <!-- PERFORMANCE: Virtual Scroll for large lists -->
+            @if (filteredHotels().length > 20) {
+              <cdk-virtual-scroll-viewport itemSize="450" class="virtual-scroll-viewport">
+                <div class="hotels-grid">
+                  @for (hotel of filteredHotels(); track hotel.Id) {
+                    <div class="hotel-card fade-in" [routerLink]="['/hotels', hotel.Id]">
+                      <div class="hotel-image-wrapper">
+                        @if (hotel.ImageUrl) {
+                          <img [src]="hotel.ImageUrl" [alt]="hotel.Name" class="hotel-image" loading="lazy" decoding="async">
+                        } @else {
+                          <div class="hotel-image-placeholder">
+                            <mat-icon>hotel</mat-icon>
+                          </div>
+                        }
+                        <div class="image-overlay"></div>
+                        <div class="price-badge">
+                          <span class="price-amount">$299</span>
+                          <span class="price-period">/night</span>
+                        </div>
                       </div>
-                    }
-                    <div class="image-overlay"></div>
-                    <div class="price-badge">
-                      <span class="price-amount">$299</span>
-                      <span class="price-period">/night</span>
-                    </div>
-                  </div>
-                  
-                  <div class="hotel-content">
-                    <div class="hotel-header">
-                      <h3 class="hotel-name">{{ hotel.Name }}</h3>
-                      <div class="hotel-rating">
-                        <mat-icon>star</mat-icon>
-                        <span>{{ hotel.Rating }}</span>
+                      
+                      <div class="hotel-content">
+                        <div class="hotel-header">
+                          <h3 class="hotel-name">{{ hotel.Name }}</h3>
+                          <div class="hotel-rating">
+                            <mat-icon>star</mat-icon>
+                            <span>{{ hotel.Rating }}</span>
+                          </div>
+                        </div>
+                        
+                        <div class="hotel-location">
+                          <mat-icon>location_on</mat-icon>
+                          <span>{{ hotel.City }}, {{ hotel.Country }}</span>
+                        </div>
+                        
+                        <p class="hotel-description">{{ hotel.Description }}</p>
+                        
+                        <button mat-raised-button class="view-details-btn">
+                          View Details
+                          <mat-icon>arrow_forward</mat-icon>
+                        </button>
                       </div>
                     </div>
-                    
-                    <div class="hotel-location">
-                      <mat-icon>location_on</mat-icon>
-                      <span>{{ hotel.City }}, {{ hotel.Country }}</span>
-                    </div>
-                    
-                    <p class="hotel-description">{{ hotel.Description }}</p>
-                    
-                    <button mat-raised-button class="view-details-btn">
-                      View Details
-                      <mat-icon>arrow_forward</mat-icon>
-                    </button>
-                  </div>
+                  }
                 </div>
-              }
-            </div>
+              </cdk-virtual-scroll-viewport>
+            } @else {
+              <div class="hotels-grid">
+                @for (hotel of filteredHotels(); track hotel.Id) {
+                  <div class="hotel-card fade-in" [routerLink]="['/hotels', hotel.Id]">
+                    <div class="hotel-image-wrapper">
+                      @if (hotel.ImageUrl) {
+                        <img [src]="hotel.ImageUrl" [alt]="hotel.Name" class="hotel-image" loading="lazy" decoding="async">
+                      } @else {
+                        <div class="hotel-image-placeholder">
+                          <mat-icon>hotel</mat-icon>
+                        </div>
+                      }
+                      <div class="image-overlay"></div>
+                      <div class="price-badge">
+                        <span class="price-amount">$299</span>
+                        <span class="price-period">/night</span>
+                      </div>
+                    </div>
+                    
+                    <div class="hotel-content">
+                      <div class="hotel-header">
+                        <h3 class="hotel-name">{{ hotel.Name }}</h3>
+                        <div class="hotel-rating">
+                          <mat-icon>star</mat-icon>
+                          <span>{{ hotel.Rating }}</span>
+                        </div>
+                      </div>
+                      
+                      <div class="hotel-location">
+                        <mat-icon>location_on</mat-icon>
+                        <span>{{ hotel.City }}, {{ hotel.Country }}</span>
+                      </div>
+                      
+                      <p class="hotel-description">{{ hotel.Description }}</p>
+                      
+                      <button mat-raised-button class="view-details-btn">
+                        View Details
+                        <mat-icon>arrow_forward</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           }
         </div>
       </section>
@@ -441,6 +493,12 @@ import { Hotel } from '../../core/models/hotel.model';
       }
     }
 
+    // Virtual Scroll Viewport
+    .virtual-scroll-viewport {
+      height: 2000px;
+      width: 100%;
+    }
+
     // Responsive
     @media (max-width: 768px) {
       .hero {
@@ -469,24 +527,56 @@ import { Hotel } from '../../core/models/hotel.model';
     }
   `]
 })
-export class HotelListComponent implements OnInit {
+export class HotelListComponent implements OnInit, OnDestroy {
   private hotelService = inject(HotelService);
 
   hotels = signal<Hotel[]>([]);
+  filteredHotels = signal<Hotel[]>([]);
   loading = signal(false);
   errorMessage = signal('');
   searchQuery = '';
   selectedCity = '';
+  
+  // PERFORMANCE: Debounce search and filter inputs
+  private searchSubject = new Subject<string>();
+  private citySubject = new Subject<string>();
+  private subscriptions: Subscription[] = [];
 
   ngOnInit(): void {
     this.loadHotels();
+    
+    // PERFORMANCE: Debounce search input (300ms)
+    this.subscriptions.push(
+      this.searchSubject.pipe(
+        debounceTime(300),
+        distinctUntilChanged()
+      ).subscribe(() => {
+        this.applyFilters();
+      })
+    );
+    
+    // PERFORMANCE: Debounce city filter (300ms)
+    this.subscriptions.push(
+      this.citySubject.pipe(
+        debounceTime(300),
+        distinctUntilChanged()
+      ).subscribe(() => {
+        this.applyFilters();
+      })
+    );
+  }
+  
+  ngOnDestroy(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   loadHotels(): void {
     this.loading.set(true);
+    // PERFORMANCE: Using cached hotel service
     this.hotelService.getHotels().subscribe({
       next: (hotels) => {
         this.hotels.set(hotels);
+        this.filteredHotels.set(hotels);
         this.loading.set(false);
       },
       error: (error) => {
@@ -494,5 +584,37 @@ export class HotelListComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+  
+  onSearchChange(query: string): void {
+    this.searchSubject.next(query);
+  }
+  
+  onCityChange(city: string): void {
+    this.citySubject.next(city);
+  }
+  
+  private applyFilters(): void {
+    let filtered = this.hotels();
+    
+    // Filter by search query
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      filtered = filtered.filter(hotel => 
+        hotel.Name?.toLowerCase().includes(query) ||
+        hotel.City?.toLowerCase().includes(query) ||
+        hotel.Country?.toLowerCase().includes(query) ||
+        hotel.Description?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Filter by city
+    if (this.selectedCity) {
+      filtered = filtered.filter(hotel => 
+        hotel.City?.toLowerCase() === this.selectedCity.toLowerCase()
+      );
+    }
+    
+    this.filteredHotels.set(filtered);
   }
 }

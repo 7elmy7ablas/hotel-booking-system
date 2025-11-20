@@ -73,7 +73,7 @@ export class BookingListComponent implements OnInit {
     this.completedBookings = this.allBookings.filter(b => b.status === BookingStatus.Completed);
   }
 
-  viewBookingDetails(bookingId: number): void {
+  viewBookingDetails(bookingId: string): void {
     this.router.navigate(['/bookings', bookingId]);
   }
 
