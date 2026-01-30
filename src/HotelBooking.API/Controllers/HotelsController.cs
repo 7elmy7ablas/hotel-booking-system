@@ -27,6 +27,7 @@ public class HotelsController : ControllerBase
     }
 
     // GET: api/hotels
+    [AllowAnonymous]
     [HttpGet]
     [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "pageNumber", "pageSize" })]
     [ProducesResponseType(typeof(PagedResult<Hotel>), StatusCodes.Status200OK)]
@@ -83,6 +84,7 @@ public class HotelsController : ControllerBase
     }
 
     // GET: api/hotels/{id}
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(Hotel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

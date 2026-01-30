@@ -127,7 +127,11 @@ export class DetailsComponent implements OnInit {
     const checkOut = this.bookingForm.get('checkOutDate')?.value;
 
     if (checkIn && checkOut && this.selectedRoom) {
-      const timeDiff = checkOut.getTime() - checkIn.getTime();
+      // Ensure dates are Date objects
+      const checkInDate = checkIn instanceof Date ? checkIn : new Date(checkIn);
+      const checkOutDate = checkOut instanceof Date ? checkOut : new Date(checkOut);
+      
+      const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
       this.numberOfNights = Math.ceil(timeDiff / (1000 * 3600 * 24));
       this.totalPrice = this.numberOfNights * this.selectedRoom.pricePerNight;
     } else {
@@ -166,6 +170,7 @@ export class DetailsComponent implements OnInit {
       guestName: this.bookingForm.value.guestName,
       guestEmail: this.bookingForm.value.guestEmail,
       guestPhone: this.bookingForm.value.guestPhone,
+      totalPrice: this.totalPrice,
       specialRequests: this.bookingForm.value.specialRequests
     };
 

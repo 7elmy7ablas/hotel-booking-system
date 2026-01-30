@@ -1,5 +1,5 @@
-@import '../../../styles/variables';
-@import '../../../styles/mixins';
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
 
 .home-container {
   min-height: 100vh;
@@ -156,8 +156,8 @@
 }
 
 .hotels-grid {
-  @include grid(3, $spacing-6);
   margin-bottom: $spacing-8;
+  @include grid(3, $spacing-6);
 
   @include mobile {
     gap: $spacing-4;

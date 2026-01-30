@@ -96,7 +96,8 @@ export class HotelService {
         rating: hotel.rating,
         amenities: hotel.amenities || [],
         imageUrl: hotel.imageUrl,
-        createdAt: hotel.createdAt
+        createdAt: hotel.createdAt,
+        rooms: hotel.rooms || hotel.Rooms || []
       })),
       tap(hotel => {
         console.log('✅ HotelService: Transformed hotel:', hotel);
@@ -144,18 +145,24 @@ export class HotelService {
     );
   }
 
+  /**
+   * Get rooms for a specific hotel
+   * Note: Rooms are included in the hotel response from GET /api/hotels/{id}
+   * This method extracts rooms from the cached hotel data
+   */
   getRoomsByHotelId(hotelId: string): Observable<Room[]> {
-    const cacheKey = `rooms:hotel:${hotelId}`;
-    
-    const request$ = this.http.get<Room[]>(`${this.apiUrl}/${hotelId}/rooms`).pipe(
+    return this.getHotelById(hotelId).pipe(
+      map(hotel => {
+        // Backend returns rooms with PascalCase property name
+        const rooms = (hotel as any).Rooms || (hotel as any).rooms || [];
+        console.log('🏨 Extracted rooms from hotel:', rooms);
+        return rooms;
+      }),
       catchError(error => {
         this.errorService.logError(error, 'HotelService - getRoomsByHotelId');
         return throwError(() => error);
       })
     );
-    
-    // Use cache with 3-minute TTL
-    return this.cacheService.get(cacheKey, request$, this.ROOMS_TTL);
   }
   
   /**
@@ -165,21 +172,7 @@ export class HotelService {
   invalidateHotelCaches(hotelId?: string): void {
     if (hotelId) {
       this.cacheService.invalidate(`hotel:${hotelId}`);
-      this.cacheService.invalidate(`rooms:hotel:${hotelId}`);
     }
     this.cacheService.invalidate('hotels:all');
-  }
-
-  getAvailableRooms(hotelId: string, checkIn: Date, checkOut: Date): Observable<Room[]> {
-    const params = new HttpParams()
-      .set('checkInDate', checkIn.toISOString())
-      .set('checkOutDate', checkOut.toISOString());
-    
-    return this.http.get<Room[]>(`${this.apiUrl}/${hotelId}/rooms/available`, { params }).pipe(
-      catchError(error => {
-        this.errorService.logError(error, 'HotelService - getAvailableRooms');
-        return throwError(() => error);
-      })
-    );
   }
 }

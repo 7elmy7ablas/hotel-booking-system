@@ -44,6 +44,7 @@ export class BookingService {
       guestName: sanitizedData.guestName,
       guestEmail: sanitizedData.guestEmail,
       guestPhone: sanitizedData.guestPhone,
+      totalPrice: sanitizedData.totalPrice,
       specialRequests: sanitizedData.specialRequests,
       status: 'Pending'
     };

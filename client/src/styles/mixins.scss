@@ -1,4 +1,5 @@
-@import './variables';
+@use './variables' as *;
+@use 'sass:list';
 
 // Responsive breakpoints
 @mixin mobile {
@@ -171,7 +172,7 @@
   $transitions: ();
   
   @each $property in $properties {
-    $transitions: append($transitions, #{$property} $transition-base $transition-timing, comma);
+    $transitions: list.append($transitions, #{$property} $transition-base $transition-timing, comma);
   }
   
   transition: $transitions;

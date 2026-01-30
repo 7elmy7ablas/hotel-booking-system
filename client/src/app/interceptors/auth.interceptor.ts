@@ -26,7 +26,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   // Skip adding token for auth endpoints
   const isAuthEndpoint = req.url.includes('/auth/login') || 
-                         req.url.includes('/auth/register');
+                         req.url.includes('/auth/register') ||
+                         req.url.includes('/auth/forgot-password') ||
+                         req.url.includes('/auth/reset-password');
 
   // Clone request and add Authorization header if token exists
   // SECURITY: No logging of tokens or auth operations

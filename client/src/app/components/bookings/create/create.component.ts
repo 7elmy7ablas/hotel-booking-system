@@ -204,6 +204,7 @@ export class CreateComponent implements OnInit {
         guestName: this.guestInfoForm.value.guestName,
         guestEmail: this.guestInfoForm.value.guestEmail,
         guestPhone: this.guestInfoForm.value.guestPhone,
+        totalPrice: this.totalPrice,
         specialRequests: this.guestInfoForm.value.specialRequests
       };
 

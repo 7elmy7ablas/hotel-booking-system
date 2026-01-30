@@ -9,7 +9,7 @@ namespace HotelBooking.API.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/bookings")]
 public class BookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -53,6 +53,65 @@ public class BookingsController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving bookings");
             return Problem("An error occurred while retrieving bookings");
+        }
+    }
+
+    // GET: api/bookings/my-bookings
+    [HttpGet("my-bookings")]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetMyBookings()
+    {
+        try
+        {
+            _logger.LogInformation("GetMyBookings endpoint called");
+            
+            // Get user ID from JWT claims
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            
+            _logger.LogInformation("UserId claim from token: {UserIdClaim}", userIdClaim ?? "NULL");
+            
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Invalid or missing userId claim in token");
+                return Unauthorized(new { Message = "Invalid token - userId claim missing or invalid" });
+            }
+
+            _logger.LogInformation("Retrieving bookings for user ID {UserId}", userId);
+
+            var bookings = await _context.Bookings
+                .Where(b => b.UserId == userId && !b.IsDeleted)
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Hotel)
+                .Include(b => b.Payment)
+                .AsNoTracking()
+                .OrderByDescending(b => b.CreatedAt)
+                .Select(b => new
+                {
+                    b.Id,
+                    b.UserId,
+                    b.RoomId,
+                    HotelId = b.Room!.HotelId,
+                    b.CheckIn,
+                    b.CheckOut,
+                    b.TotalPrice,
+                    b.Status,
+                    b.CreatedAt,
+                    HotelName = b.Room.Hotel!.Name,
+                    RoomType = b.Room.RoomType,
+                    PaymentStatus = b.Payment != null ? b.Payment.Status : null
+                })
+                .ToListAsync();
+
+            _logger.LogInformation("Retrieved {Count} bookings for user ID {UserId}", bookings.Count, userId);
+
+            return Ok(bookings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user bookings");
+            return Problem("An error occurred while retrieving your bookings");
         }
     }
 

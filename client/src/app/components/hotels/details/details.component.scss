@@ -1,5 +1,5 @@
-@import '../../../../styles/variables';
-@import '../../../../styles/mixins';
+@use '../../../../styles/variables' as *;
+@use '../../../../styles/mixins' as *;
 
 .hotel-details-container {
   min-height: 100vh;
@@ -372,6 +372,12 @@
     font-size: $font-size-sm;
     font-weight: $font-weight-medium;
     color: $gray-700;
+
+    .required {
+      color: #f44336;
+      font-weight: bold;
+      margin-left: 2px;
+    }
   }
 
   .form-input,

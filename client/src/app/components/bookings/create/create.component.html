@@ -61,7 +61,7 @@
               <h3>Booking Dates</h3>
               <div class="form-row">
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Check-in Date</mat-label>
+                  <mat-label>Check-in Date <span class="required">*</span></mat-label>
                   <input 
                     matInput 
                     [matDatepicker]="checkInPicker" 
@@ -73,7 +73,7 @@
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Check-out Date</mat-label>
+                  <mat-label>Check-out Date <span class="required">*</span></mat-label>
                   <input 
                     matInput 
                     [matDatepicker]="checkOutPicker" 
@@ -86,7 +86,7 @@
               </div>
 
               <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Number of Guests</mat-label>
+                <mat-label>Number of Guests <span class="required">*</span></mat-label>
                 <input 
                   matInput 
                   type="number" 
@@ -115,7 +115,7 @@
             <div class="form-section">
               <h3>Contact Details</h3>
               <mat-form-field appearance="outline" class="form-field full-width">
-                <mat-label>Full Name</mat-label>
+                <mat-label>Full Name <span class="required">*</span></mat-label>
                 <input matInput formControlName="guestName" placeholder="Enter your full name">
                 <mat-icon matPrefix>person</mat-icon>
                 <mat-error *ngIf="guestInfoForm.get('guestName')?.invalid">
@@ -125,7 +125,7 @@
 
               <div class="form-row">
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Email</mat-label>
+                  <mat-label>Email <span class="required">*</span></mat-label>
                   <input matInput type="email" formControlName="guestEmail" placeholder="your@email.com">
                   <mat-icon matPrefix>email</mat-icon>
                   <mat-error *ngIf="guestInfoForm.get('guestEmail')?.invalid">
@@ -134,7 +134,7 @@
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Phone Number</mat-label>
+                  <mat-label>Phone Number <span class="required">*</span></mat-label>
                   <input matInput formControlName="guestPhone" placeholder="+1 234 567 8900">
                   <mat-icon matPrefix>phone</mat-icon>
                   <mat-error *ngIf="guestInfoForm.get('guestPhone')?.invalid">
@@ -203,7 +203,7 @@
               </div>
 
               <mat-checkbox formControlName="acceptTerms" class="terms-checkbox">
-                I accept the <a href="#" target="_blank">terms and conditions</a>
+                I accept the <a href="#" target="_blank">terms and conditions</a> <span class="required">*</span>
               </mat-checkbox>
             </div>
 

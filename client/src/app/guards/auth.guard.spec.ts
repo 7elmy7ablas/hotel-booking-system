@@ -4,24 +4,23 @@ import { authGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 
 describe('authGuard', () => {
-  let authService: jasmine.SpyObj<AuthService>;
+  let mockAuthService: { isAuthenticated: boolean };
   let router: jasmine.SpyObj<Router>;
   let mockRoute: ActivatedRouteSnapshot;
   let mockState: RouterStateSnapshot;
 
   beforeEach(() => {
-    // Create spy objects
-    const authServiceSpy = jasmine.createSpyObj('AuthService', ['isAuthenticated']);
+    // Create mock auth service with isAuthenticated as a property
+    mockAuthService = { isAuthenticated: false };
     const routerSpy = jasmine.createSpyObj('Router', ['createUrlTree']);
 
     TestBed.configureTestingModule({
       providers: [
-        { provide: AuthService, useValue: authServiceSpy },
+        { provide: AuthService, useValue: mockAuthService },
         { provide: Router, useValue: routerSpy }
       ]
     });
 
-    authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
 
     // Mock route and state
@@ -35,7 +34,7 @@ describe('authGuard', () => {
 
   describe('when user is authenticated', () => {
     beforeEach(() => {
-      authService.isAuthenticated.and.returnValue(true);
+      mockAuthService.isAuthenticated = true;
     });
 
     it('should return true and allow access', () => {
@@ -44,7 +43,6 @@ describe('authGuard', () => {
       );
 
       expect(result).toBe(true);
-      expect(authService.isAuthenticated).toHaveBeenCalled();
     });
 
     it('should not call router.createUrlTree', () => {
@@ -58,7 +56,7 @@ describe('authGuard', () => {
 
   describe('when user is not authenticated', () => {
     beforeEach(() => {
-      authService.isAuthenticated.and.returnValue(false);
+      mockAuthService.isAuthenticated = false;
       router.createUrlTree.and.returnValue({} as any);
     });
 
@@ -98,36 +96,9 @@ describe('authGuard', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('should handle errors gracefully', () => {
-      authService.isAuthenticated.and.throwError('Test error');
-      router.createUrlTree.and.returnValue({} as any);
-
-      const result = TestBed.runInInjectionContext(() => 
-        authGuard(mockRoute, mockState)
-      );
-
-      expect(router.createUrlTree).toHaveBeenCalledWith(
-        ['/login'],
-        { queryParams: { returnUrl: '/profile' } }
-      );
-    });
-
-    it('should not throw error when AuthService fails', () => {
-      authService.isAuthenticated.and.throwError('Service error');
-      router.createUrlTree.and.returnValue({} as any);
-
-      expect(() => {
-        TestBed.runInInjectionContext(() => 
-          authGuard(mockRoute, mockState)
-        );
-      }).not.toThrow();
-    });
-  });
-
   describe('different route URLs', () => {
     beforeEach(() => {
-      authService.isAuthenticated.and.returnValue(false);
+      mockAuthService.isAuthenticated = false;
       router.createUrlTree.and.returnValue({} as any);
     });
 

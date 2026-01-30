@@ -60,6 +60,8 @@ describe('AccessibilityService - WCAG 2.1 AA Compliance', () => {
     });
 
     it('should clear announcements after 5 seconds', (done) => {
+      // Increase timeout for this async test
+      jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
       const message = 'Temporary announcement';
       service.announce(message);
 
@@ -68,7 +70,7 @@ describe('AccessibilityService - WCAG 2.1 AA Compliance', () => {
         expect(region?.textContent).toBe('');
         done();
       }, 5200);
-    });
+    }, 10000); // Set timeout to 10s for this test
   });
 
   describe('Focus Management', () => {

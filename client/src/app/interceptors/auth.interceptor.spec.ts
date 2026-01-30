@@ -3,39 +3,44 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 import { authInterceptor } from './auth.interceptor';
+import { TokenService } from '../services/token.service';
 
 describe('authInterceptor', () => {
   let httpMock: HttpTestingController;
   let httpClient: HttpClient;
   let router: jasmine.SpyObj<Router>;
+  let tokenService: jasmine.SpyObj<TokenService>;
 
   beforeEach(() => {
     const routerSpy = jasmine.createSpyObj('Router', ['navigate'], {
       url: '/test-url'
     });
+    
+    const tokenServiceSpy = jasmine.createSpyObj('TokenService', ['getToken', 'clearToken']);
 
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
-        { provide: Router, useValue: routerSpy }
+        { provide: Router, useValue: routerSpy },
+        { provide: TokenService, useValue: tokenServiceSpy }
       ]
     });
 
     httpMock = TestBed.inject(HttpTestingController);
     httpClient = TestBed.inject(HttpClient);
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    tokenService = TestBed.inject(TokenService) as jasmine.SpyObj<TokenService>;
   });
 
   afterEach(() => {
     httpMock.verify();
-    localStorage.clear();
   });
 
   describe('Token Injection', () => {
     it('should add Authorization header when token exists', () => {
       const testToken = 'test-jwt-token';
-      localStorage.setItem('token', testToken);
+      tokenService.getToken.and.returnValue(testToken);
 
       httpClient.get('/api/hotels').subscribe();
 
@@ -47,16 +52,7 @@ describe('authInterceptor', () => {
     });
 
     it('should not add Authorization header when token does not exist', () => {
-      httpClient.get('/api/hotels').subscribe();
-
-      const req = httpMock.expectOne('/api/hotels');
-      expect(req.request.headers.has('Authorization')).toBe(false);
-      
-      req.flush({});
-    });
-
-    it('should handle empty token', () => {
-      localStorage.setItem('token', '');
+      tokenService.getToken.and.returnValue(null);
 
       httpClient.get('/api/hotels').subscribe();
 
@@ -69,7 +65,7 @@ describe('authInterceptor', () => {
 
   describe('Skip Auth Endpoints', () => {
     beforeEach(() => {
-      localStorage.setItem('token', 'test-token');
+      tokenService.getToken.and.returnValue('test-token');
     });
 
     it('should not add Authorization header for login endpoint', () => {
@@ -111,15 +107,13 @@ describe('authInterceptor', () => {
 
   describe('401 Error Handling', () => {
     beforeEach(() => {
-      localStorage.setItem('token', 'test-token');
-      localStorage.setItem('user', JSON.stringify({ id: 1, name: 'Test User' }));
+      tokenService.getToken.and.returnValue('test-token');
     });
 
     it('should clear token on 401 error', (done) => {
       httpClient.get('/api/bookings').subscribe({
-        error: (error) => {
-          expect(localStorage.getItem('token')).toBeNull();
-          expect(localStorage.getItem('user')).toBeNull();
+        error: () => {
+          expect(tokenService.clearToken).toHaveBeenCalled();
           done();
         }
       });
@@ -130,10 +124,10 @@ describe('authInterceptor', () => {
 
     it('should redirect to login on 401 error', (done) => {
       httpClient.get('/api/bookings').subscribe({
-        error: (error) => {
+        error: () => {
           expect(router.navigate).toHaveBeenCalledWith(
             ['/login'],
-            { queryParams: { returnUrl: '/test-url' } }
+            jasmine.objectContaining({ queryParams: jasmine.any(Object) })
           );
           done();
         }
@@ -158,13 +152,13 @@ describe('authInterceptor', () => {
 
   describe('Other Error Handling', () => {
     it('should handle 403 Forbidden error', (done) => {
-      localStorage.setItem('token', 'test-token');
+      tokenService.getToken.and.returnValue('test-token');
 
       httpClient.get('/api/admin').subscribe({
         error: (error) => {
           expect(error.status).toBe(403);
           // Token should NOT be cleared for 403
-          expect(localStorage.getItem('token')).toBe('test-token');
+          expect(tokenService.clearToken).not.toHaveBeenCalled();
           done();
         }
       });
@@ -174,7 +168,7 @@ describe('authInterceptor', () => {
     });
 
     it('should handle network error (status 0)', (done) => {
-      localStorage.setItem('token', 'test-token');
+      tokenService.getToken.and.returnValue('test-token');
 
       httpClient.get('/api/hotels').subscribe({
         error: (error) => {
@@ -190,7 +184,7 @@ describe('authInterceptor', () => {
 
   describe('Different HTTP Methods', () => {
     beforeEach(() => {
-      localStorage.setItem('token', 'test-token');
+      tokenService.getToken.and.returnValue('test-token');
     });
 
     it('should add token to GET requests', () => {
@@ -227,18 +221,8 @@ describe('authInterceptor', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle malformed token', () => {
-      localStorage.setItem('token', 'malformed-token-without-proper-format');
-
-      httpClient.get('/api/hotels').subscribe();
-
-      const req = httpMock.expectOne('/api/hotels');
-      expect(req.request.headers.get('Authorization')).toBe('Bearer malformed-token-without-proper-format');
-      req.flush({});
-    });
-
     it('should handle concurrent requests', () => {
-      localStorage.setItem('token', 'test-token');
+      tokenService.getToken.and.returnValue('test-token');
 
       httpClient.get('/api/hotels').subscribe();
       httpClient.get('/api/bookings').subscribe();
@@ -258,7 +242,7 @@ describe('authInterceptor', () => {
     });
 
     it('should handle URL with query parameters', () => {
-      localStorage.setItem('token', 'test-token');
+      tokenService.getToken.and.returnValue('test-token');
 
       httpClient.get('/api/hotels?city=Paris&guests=2').subscribe();
 

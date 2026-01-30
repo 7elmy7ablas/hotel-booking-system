@@ -30,5 +30,6 @@ export interface CreateBookingRequest {
   guestName: string;
   guestEmail: string;
   guestPhone: string;
+  totalPrice: number;
   specialRequests?: string;
 }

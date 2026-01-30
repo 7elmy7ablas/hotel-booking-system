@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { Hotel } from '../models/hotel.model';
 import { Room } from '../models/room.model';
@@ -30,8 +31,20 @@ export class HotelService {
     return this.apiService.delete<void>(`hotels/${id}`);
   }
 
+  /**
+   * Get rooms for a specific hotel
+   * Note: Rooms are included in the hotel response from GET /api/hotels/{id}
+   * This method extracts rooms from the hotel data
+   */
   getHotelRooms(hotelId: string): Observable<Room[]> {
-    return this.apiService.get<Room[]>(`hotels/${hotelId}/rooms`);
+    return this.getHotel(hotelId).pipe(
+      map((hotel: any) => {
+        // Backend returns rooms with PascalCase property name
+        const rooms = hotel.Rooms || hotel.rooms || [];
+        console.log('🏨 Extracted rooms from hotel:', rooms);
+        return rooms;
+      })
+    );
   }
 
   searchHotels(city?: string, country?: string): Observable<Hotel[]> {

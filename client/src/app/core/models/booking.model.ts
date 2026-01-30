@@ -15,5 +15,6 @@ export interface CreateBookingRequest {
   RoomId: string;
   CheckInDate: string;
   CheckOutDate: string;
+  TotalPrice: number;
   SpecialRequests?: string;
 }

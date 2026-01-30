@@ -227,6 +227,7 @@ export class SanitizationService {
       guestName: this.sanitizeName(data.guestName),
       guestEmail: this.sanitizeEmail(data.guestEmail),
       guestPhone: this.sanitizePhoneNumber(data.guestPhone),
+      totalPrice: this.sanitizeNumber(data.totalPrice) || 0,
       specialRequests: this.sanitizeDescription(data.specialRequests || '')
     };
   }

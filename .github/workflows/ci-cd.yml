@@ -1,0 +1,331 @@
+name: Hotel Booking CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '20.x'
+  COVERAGE_THRESHOLD: 85
+
+jobs:
+  # Backend Build and Test
+  backend-tests:
+    name: Backend Tests & Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore src/HotelBooking.sln
+      
+    - name: Build
+      run: dotnet build src/HotelBooking.sln --configuration Release --no-restore
+      
+    - name: Run Domain Tests
+      run: |
+        dotnet test src/HotelBooking.Domain.Tests/HotelBooking.Domain.Tests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --logger "trx;LogFileName=domain-test-results.trx" \
+          /p:CollectCoverage=true \
+          /p:CoverletOutputFormat=cobertura \
+          /p:CoverletOutput=./TestResults/domain-coverage.xml
+          
+    - name: Run Application Tests
+      run: |
+        dotnet test src/HotelBooking.Application.Tests/HotelBooking.Application.Tests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --logger "trx;LogFileName=app-test-results.trx" \
+          /p:CollectCoverage=true \
+          /p:CoverletOutputFormat=cobertura \
+          /p:CoverletOutput=./TestResults/app-coverage.xml
+          
+    - name: Run Integration Tests
+      run: |
+        dotnet test src/HotelBooking.Tests/HotelBooking.Tests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --logger "trx;LogFileName=integration-test-results.trx" \
+          /p:CollectCoverage=true \
+          /p:CoverletOutputFormat=cobertura \
+          /p:CoverletOutput=./TestResults/integration-coverage.xml
+          
+    - name: Install ReportGenerator
+      run: dotnet tool install --global dotnet-reportgenerator-globaltool
+      
+    - name: Generate Coverage Report
+      run: |
+        reportgenerator \
+          -reports:"**/TestResults/*coverage.xml" \
+          -targetdir:"coverage-report" \
+          -reporttypes:"Html;Cobertura;Badges;TextSummary" \
+          -verbosity:"Info"
+          
+    - name: Display Coverage Summary
+      run: cat coverage-report/Summary.txt
+      
+    - name: Check Coverage Threshold
+      run: |
+        COVERAGE=$(grep -oP 'Line coverage: \K[0-9.]+' coverage-report/Summary.txt | head -1)
+        echo "Current coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
+          echo "::error::Coverage $COVERAGE% is below threshold $COVERAGE_THRESHOLD%"
+          exit 1
+        fi
+        
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage-report/Cobertura.xml
+        flags: backend
+        name: backend-coverage
+        fail_ci_if_error: true
+        
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: backend-test-results
+        path: |
+          **/TestResults/*.trx
+          coverage-report/
+          
+  # Frontend Build and Test
+  frontend-tests:
+    name: Frontend Tests & Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./client
+      run: npm ci
+      
+    - name: Run Unit Tests with Coverage
+      working-directory: ./client
+      run: npm run test:ci
+      
+    - name: Check Coverage Threshold
+      working-directory: ./client
+      run: |
+        COVERAGE=$(jq '.total.lines.pct' coverage/coverage-summary.json)
+        echo "Current coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
+          echo "::error::Coverage $COVERAGE% is below threshold $COVERAGE_THRESHOLD%"
+          exit 1
+        fi
+        
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./client/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+        fail_ci_if_error: true
+        
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: frontend-test-results
+        path: client/coverage/
+        
+  # E2E Tests
+  e2e-tests:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./client
+      run: npm ci
+      
+    - name: Install Playwright Browsers
+      working-directory: ./client
+      run: npx playwright install --with-deps chromium
+      
+    - name: Build Frontend
+      working-directory: ./client
+      run: npm run build
+      
+    - name: Start Backend API
+      run: |
+        cd src/HotelBooking.API
+        dotnet run --configuration Release &
+        sleep 10
+        
+    - name: Start Frontend
+      working-directory: ./client
+      run: |
+        npm start &
+        npx wait-on http://localhost:4200 --timeout 60000
+        
+    - name: Run E2E Tests
+      working-directory: ./client
+      run: npm run e2e
+      
+    - name: Upload E2E Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: e2e-test-results
+        path: |
+          client/playwright-report/
+          client/test-results/
+          
+  # Code Quality & Security
+  code-quality:
+    name: Code Quality & Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Install SonarScanner
+      run: dotnet tool install --global dotnet-sonarscanner
+      
+    - name: Run SonarCloud Scan
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        dotnet sonarscanner begin \
+          /k:"hotel-booking-system" \
+          /o:"your-org" \
+          /d:sonar.host.url="https://sonarcloud.io" \
+          /d:sonar.token="${SONAR_TOKEN}" \
+          /d:sonar.cs.opencover.reportsPaths="**/TestResults/*coverage.xml"
+        
+        dotnet build src/HotelBooking.sln --configuration Release
+        
+        dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+        
+  # Combined Coverage Report
+  coverage-report:
+    name: Combined Coverage Report
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    
+    steps:
+    - name: Download Backend Coverage
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-test-results
+        path: backend-coverage/
+        
+    - name: Download Frontend Coverage
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-test-results
+        path: frontend-coverage/
+        
+    - name: Create Combined Report
+      run: |
+        echo "# Test Coverage Report" > coverage-summary.md
+        echo "" >> coverage-summary.md
+        echo "## Backend Coverage" >> coverage-summary.md
+        cat backend-coverage/coverage-report/Summary.txt >> coverage-summary.md
+        echo "" >> coverage-summary.md
+        echo "## Frontend Coverage" >> coverage-summary.md
+        echo "See detailed report in artifacts" >> coverage-summary.md
+        
+    - name: Comment PR with Coverage
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const coverage = fs.readFileSync('coverage-summary.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: coverage
+          });
+          
+  # Deployment (only on main branch after all tests pass)
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, e2e-tests, code-quality]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Build Backend for Production
+      run: |
+        dotnet publish src/HotelBooking.API/HotelBooking.API.csproj \
+          --configuration Release \
+          --output ./publish/backend
+          
+    - name: Build Frontend for Production
+      working-directory: ./client
+      run: |
+        npm ci
+        npm run build -- --configuration production
+        
+    - name: Deploy to Azure
+      # Add your deployment steps here
+      run: echo "Deploying to production..."

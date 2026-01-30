@@ -5,7 +5,8 @@ import { AuthService } from './auth.service';
 import { CacheService } from './cache.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { SanitizationService } from './sanitization.service';
-import { Booking, CreateBookingRequest } from '../models/booking.model';
+import { SelectedHotelService } from './selected-hotel.service';
+import { Booking, BookingStatus, CreateBookingRequest } from '../models/booking.model';
 import { environment } from '../../environments/environment';
 
 describe('BookingService', () => {
@@ -16,13 +17,14 @@ describe('BookingService', () => {
 
   const mockUser = { id: 'user1', email: 'test@test.com', fullName: 'Test User', role: 'User' };
   
-  const mockBooking: Booking = {
+  // Backend response format
+  const mockBookingResponse = {
     id: '1',
     userId: 'user1',
     roomId: 'room1',
     hotelId: 'hotel1',
-    checkInDate: new Date('2025-01-01'),
-    checkOutDate: new Date('2025-01-05'),
+    checkIn: '2025-01-01',
+    checkOut: '2025-01-05',
     totalPrice: 400,
     status: 'Pending',
     guestName: 'Test User',
@@ -41,7 +43,8 @@ describe('BookingService', () => {
         { provide: AuthService, useValue: authServiceSpy },
         CacheService,
         ErrorHandlingService,
-        SanitizationService
+        SanitizationService,
+        SelectedHotelService
       ]
     });
 
@@ -68,18 +71,20 @@ describe('BookingService', () => {
         checkOutDate: new Date('2025-01-05'),
         guestName: 'Test User',
         guestEmail: 'test@test.com',
-        guestPhone: '1234567890'
+        guestPhone: '1234567890',
+        totalPrice: 400
       };
 
       service.createBooking(bookingRequest).subscribe(booking => {
-        expect(booking).toEqual(mockBooking);
+        expect(booking.id).toBe('1');
+        expect(booking.guestName).toBe('Test User');
         done();
       });
 
       const req = httpMock.expectOne(`${environment.apiUrl}${environment.endpoints.bookings}`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body.userId).toBe('user1');
-      req.flush(mockBooking);
+      req.flush(mockBookingResponse);
     });
 
     it('should sanitize booking data', (done) => {
@@ -89,7 +94,8 @@ describe('BookingService', () => {
         checkOutDate: new Date('2025-01-05'),
         guestName: '<script>alert("xss")</script>Test',
         guestEmail: 'test@test.com',
-        guestPhone: '1234567890'
+        guestPhone: '1234567890',
+        totalPrice: 400
       };
 
       service.createBooking(bookingRequest).subscribe(() => {
@@ -98,7 +104,7 @@ describe('BookingService', () => {
 
       const req = httpMock.expectOne(`${environment.apiUrl}${environment.endpoints.bookings}`);
       expect(req.request.body.guestName).not.toContain('<script>');
-      req.flush(mockBooking);
+      req.flush(mockBookingResponse);
     });
 
     it('should throw error if user not authenticated', () => {
@@ -118,7 +124,8 @@ describe('BookingService', () => {
         checkOutDate: new Date('2025-01-05'),
         guestName: 'Test User',
         guestEmail: 'test@test.com',
-        guestPhone: '1234567890'
+        guestPhone: '1234567890',
+        totalPrice: 400
       };
 
       service.createBooking(bookingRequest).subscribe(() => {
@@ -127,32 +134,33 @@ describe('BookingService', () => {
       });
 
       const req = httpMock.expectOne(`${environment.apiUrl}${environment.endpoints.bookings}`);
-      req.flush(mockBooking);
+      req.flush(mockBookingResponse);
     });
   });
 
   describe('getMyBookings', () => {
     it('should fetch user bookings', (done) => {
       service.getMyBookings().subscribe(bookings => {
-        expect(bookings).toEqual([mockBooking]);
+        expect(bookings.length).toBe(1);
+        expect(bookings[0].guestName).toBe('Test User');
         done();
       });
 
       const req = httpMock.expectOne(`${environment.apiUrl}${environment.endpoints.bookings}/my-bookings`);
       expect(req.request.method).toBe('GET');
-      req.flush([mockBooking]);
+      req.flush([mockBookingResponse]);
     });
 
     it('should cache bookings response', (done) => {
       service.getMyBookings().subscribe(() => {
         service.getMyBookings().subscribe(bookings => {
-          expect(bookings).toEqual([mockBooking]);
+          expect(bookings.length).toBe(1);
           done();
         });
       });
 
       const req = httpMock.expectOne(`${environment.apiUrl}${environment.endpoints.bookings}/my-bookings`);
-      req.flush([mockBooking]);
+      req.flush([mockBookingResponse]);
     });
   });
 

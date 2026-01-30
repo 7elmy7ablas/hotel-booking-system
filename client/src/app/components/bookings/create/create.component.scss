@@ -175,6 +175,18 @@
 
 .terms-checkbox {
   margin: 20px 0;
+
+  .required {
+    color: #f44336;
+    font-weight: bold;
+    margin-left: 2px;
+  }
+}
+
+.required {
+  color: #f44336;
+  font-weight: bold;
+  margin-left: 2px;
 }
 
 .booking-summary {

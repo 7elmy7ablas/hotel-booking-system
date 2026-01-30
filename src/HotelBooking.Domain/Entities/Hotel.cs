@@ -36,6 +36,5 @@ public class Hotel : BaseEntity
     /// <summary>
     /// Navigation property for hotel rooms
     /// </summary>
-    [JsonIgnore]
     public ICollection<Room> Rooms { get; set; } = new List<Room>();
 }

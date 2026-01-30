@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { BookingService } from '../../services/booking.service';
 import { Booking } from '../../models/booking.model';
@@ -8,7 +8,7 @@ import { Booking } from '../../models/booking.model';
 @Component({
   selector: 'app-my-bookings',
   standalone: true,
-  imports: [CommonModule, RouterLink, ScrollingModule],
+  imports: [CommonModule, ScrollingModule],
   templateUrl: './my-bookings.component.html',
   styleUrls: ['./my-bookings.component.scss']
 })
