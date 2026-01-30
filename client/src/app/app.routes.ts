@@ -70,9 +70,7 @@ export const routes: Routes = [
   // Admin Routes (require Admin role)
   {
     path: 'admin',
-    loadComponent: () => import('./components/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
-    canActivate: [adminGuard],
-    title: 'Admin Dashboard - Hotel Booking'
+    loadChildren: () => import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES)
   },
 
   // Wildcard Route - 404 page
